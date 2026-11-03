@@ -143,3 +143,20 @@ python3.13 -m pytest
 ```
 
 `index.html?audit` runs the motion checks from PRD section 16.5 (`verify-motion.js`).
+
+## Portfolio brief
+
+A professional-networking product concept localized for Indian users, with profile, discovery, and career-oriented interaction flows.
+
+### Visual system
+
+Editorial professional identity: warm neutrals, strong typographic hierarchy, restrained saffron/indigo signals, and content-led layouts.
+
+### Architecture
+
+The repository contains the product interface and supporting application assets; keep deployment configuration and credentials outside source control.
+
+### Run and output
+
+Follow the project-specific setup instructions. Generated packages and local build artifacts are intentionally excluded from the showcase source.
+
