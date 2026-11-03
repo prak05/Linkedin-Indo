@@ -1,0 +1,4 @@
+# Packaged into the Lambda layer as arm64 wheels (see infrastructure/packaging.tf).
+# boto3 is provided by the python3.13 runtime.
+anthropic>=2.3,<3
+pyjwt[crypto]>=2.9,<3

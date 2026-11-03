@@ -1,0 +1,11 @@
+[Desktop Entry]
+Type=Application
+Name=LinkedIn Indo
+GenericName=LinkedIn Post Drafter
+Comment=Draft LinkedIn posts and comments in your voice
+Exec=linkedin-indo-desktop
+Icon=linkedin-indo
+Terminal=false
+Categories=Office;TextTools;
+Keywords=LinkedIn;post;draft;writing;
+StartupWMClass=LinkedInIndo

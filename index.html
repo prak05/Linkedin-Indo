@@ -1,0 +1,2015 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>LinkedIn Indo // Post Terminal</title>
+<script>document.documentElement.classList.add('boot');</script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Syne:wght@700;800&display=swap">
+<!-- Bundled (MIT, vendor/tailwindcss-LICENSE) so the app is styled offline and on slow networks. -->
+<script src="vendor/tailwindcss-browser-4.3.3.js"></script>
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<style type="text/tailwindcss">
+  @theme {
+    --color-canvas: #FFFFFF;
+    --color-ink: #0A0A0A;
+    --color-line: #D9D9D9;
+    --color-accent: #DC2626;
+    --font-display: "Syne", ui-sans-serif, system-ui, sans-serif;
+    --font-mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace;
+  }
+</style>
+<style id="motion">
+  /* Motion system: PRD section 16. Two curves only; animate transform, opacity, clip-path. */
+  :root {
+    --canvas: #FFFFFF;
+    --ink: #0A0A0A;
+    --line: #D9D9D9;
+    --accent: #DC2626;
+    --on-accent: #FFFFFF;
+    --macro: cubic-bezier(0.16, 1, 0.3, 1);
+    --micro: cubic-bezier(0.25, 1, 0.5, 1);
+    --drawer-peek: 44px;
+  }
+  html { color-scheme: light; }
+  /* Black band (header): the palette flips inside it, Tailwind's colour classes included. */
+  .band {
+    --canvas: #0A0A0A; --ink: #FFFFFF; --line: #3F3F46;
+    --color-canvas: #0A0A0A; --color-ink: #FFFFFF; --color-line: #3F3F46;
+    color-scheme: dark;
+  }
+  html, body { background: var(--canvas); color: var(--ink); }
+  body { font-family: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace; }
+  .frame { padding-bottom: var(--drawer-h, 44px); }
+
+  :focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+  :focus:not(:focus-visible) { outline: none; }
+
+  /* Staged load: one group every 75 ms (MO-1, MO-2) */
+  @keyframes k-fade   { from { opacity: 0; } }
+  @keyframes k-rail-x { from { transform: scaleX(0); } }
+  @keyframes k-rail-y { from { transform: scaleY(0); } }
+  @keyframes k-rise10 { from { opacity: 0; transform: translateY(10px); } }
+  @keyframes k-rise8  { from { opacity: 0; transform: translateY(8px); } }
+  @keyframes k-wipe   { from { clip-path: inset(0 100% 0 0); } to { clip-path: inset(0 0 0 0); } }
+  @keyframes k-pop    { from { opacity: 0; transform: scale(0); } }
+  @keyframes k-drawer { from { transform: translateY(100%); } }
+  @keyframes k-flash  { from { opacity: 0.35; } }
+
+  .ld-frame   { animation: k-fade   500ms var(--macro) 0ms   both; }
+  .ld-rail    { animation: k-fade   500ms var(--macro) 75ms  backwards; }
+  .rail-x     { animation: k-rail-x 500ms var(--macro) 75ms  backwards; transform-origin: left; }
+  .rail-y     { animation: k-rail-y 500ms var(--macro) 75ms  backwards; transform-origin: top; }
+  .ld-head    { animation: k-rise10 500ms var(--macro) 150ms backwards; }
+  .ld-copy    { animation: k-rise8  400ms var(--macro) 225ms backwards; }
+  .ld-panels  { animation: k-wipe   500ms var(--macro) 300ms backwards; }
+  .ld-tracker { animation: k-pop    400ms var(--macro) 375ms backwards; }
+  .ld-cta     { animation: k-rise8  400ms var(--macro) 450ms backwards; }
+  .ld-drawer  { animation: k-drawer 400ms var(--macro) 525ms backwards; }
+
+  /* Held until Tailwind has styled the page, so the sequence plays on the final layout */
+  .boot [class*="ld-"], .boot .rail-x, .boot .rail-y { animation-play-state: paused; }
+
+  .flash     { animation: k-flash 160ms var(--micro); }
+  .row-enter { animation: k-rise8 400ms var(--macro) backwards; }
+
+  /* Hover borders: an overlay fades in, so the colour change is opacity only */
+  .bx { position: relative; }
+  .bx::after {
+    content: ""; position: absolute; inset: -1px; border: 1px solid var(--ink);
+    opacity: 0; pointer-events: none; transition: opacity 160ms var(--micro);
+  }
+  .bx:hover::after, .bx:focus-within::after { opacity: 1; }
+  .bx:has(:disabled):hover::after, .bx:disabled::after { opacity: 0; }
+
+  /* Step tracker */
+  .sq-hit { display: grid; place-items: center; width: 24px; height: 24px; }
+  .sq-hit:disabled { cursor: not-allowed; }
+  .sq { position: relative; width: 14px; height: 14px; border: 1px solid var(--line); }
+  .sq-f { position: absolute; inset: -1px; transform: scale(0); transition: transform 140ms var(--micro); }
+  .sq-cur  { background: var(--ink); }
+  .sq-done { background: var(--accent); }
+  li[data-state="current"] .sq-cur  { transform: scale(1); }
+  li[data-state="done"]    .sq-done { transform: scale(1); }
+
+  /* Panels: bounding box opens with clip-path; siblings travel with a measured translate */
+  .panel, [data-flip] { transition: transform 500ms var(--macro); }
+  .panel { position: relative; border-bottom: 1px solid var(--line); }
+  .panel::before {
+    content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 2px; background: var(--accent);
+    transform: scaleY(0); transform-origin: top; transition: transform 500ms var(--macro);
+  }
+  .panel[data-open]::before { transform: scaleY(1); }
+  .panel-head {
+    display: grid; grid-template-columns: 2.25rem minmax(0, 1fr) auto 1rem; align-items: center; gap: 12px;
+    width: 100%; padding: 14px 16px 14px 18px; text-align: left; cursor: pointer;
+  }
+  .panel-head:disabled { cursor: not-allowed; }
+  .panel-head:disabled .name { opacity: 0.4; }
+  .panel-body { overflow: hidden; clip-path: inset(0 0 0 0); transition: clip-path 500ms var(--macro); }
+  .panel-body.is-entering { clip-path: inset(0 0 100% 0); transition: none; }
+  .panel-body.is-leaving {
+    clip-path: inset(0 0 100% 0); opacity: 0;
+    transition: clip-path 160ms var(--micro), opacity 160ms var(--micro);
+  }
+  .panel-inner { padding: 6px 16px 22px 18px; transition: opacity 400ms var(--macro) 60ms, transform 400ms var(--macro) 60ms; }
+  .is-entering .panel-inner { opacity: 0; transform: translateY(8px); transition: none; }
+
+  /* Fields */
+  .lbl { display: block; margin-bottom: 8px; font-size: 11px; letter-spacing: 0.2em; text-transform: uppercase; color: rgb(10 10 10 / 0.6); }
+  .field { display: block; border: 1px solid var(--line); }
+  .field input, .field textarea {
+    display: block; width: 100%; padding: 10px 12px; background: transparent; color: var(--ink);
+    font: inherit; font-size: 14px; outline-offset: 3px;
+  }
+  .field textarea { resize: vertical; min-height: 3.25rem; }
+  .field ::placeholder { color: rgb(10 10 10 / 0.3); }
+  .field input[type="file"] { padding: 8px; font-size: 12px; }
+  .field input[type="file"]::file-selector-button {
+    margin-right: 12px; padding: 6px 10px; border: 0; background: var(--ink); color: var(--canvas);
+    font: inherit; font-size: 11px; letter-spacing: 0.2em; text-transform: uppercase; cursor: pointer;
+  }
+  .err, .status { margin-top: 8px; font-size: 11px; letter-spacing: 0.08em; color: var(--ink); }
+  .err:empty, .status:empty { display: none; }
+  .err::before, .status[data-tone="error"]::before {
+    content: ""; display: inline-block; width: 7px; height: 7px; margin-right: 8px; background: var(--accent);
+  }
+
+  /* Choice tiles */
+  .tile {
+    display: grid; grid-template-columns: auto minmax(0, 1fr); column-gap: 10px; row-gap: 2px; align-items: center;
+    padding: 12px; border: 1px solid var(--line); cursor: pointer;
+  }
+  .tick { grid-row: span 2; position: relative; width: 10px; height: 10px; border: 1px solid rgb(10 10 10 / 0.5); }
+  .tick::before { content: ""; position: absolute; inset: 1px; background: var(--ink); transform: scale(0); transition: transform 140ms var(--micro); }
+  .tile:has(:checked) .tick::before { transform: scale(1); }
+  .tile:has(:checked)::after { opacity: 1; }
+  .tile:has(:focus-visible) { outline: 2px solid var(--ink); outline-offset: 2px; }
+
+  /* Primary CTA: off-white block; hover inverts with a vertical slide */
+  .cta {
+    position: relative; display: inline-flex; align-items: center; height: 44px; padding: 0 20px;
+    background: var(--accent); color: var(--on-accent); border: 1px solid var(--accent); border-radius: 0; overflow: hidden;
+    font-size: 11px; font-weight: 700; letter-spacing: 0.22em; text-transform: uppercase; cursor: pointer;
+  }
+  .cta-sm { height: 32px; padding: 0 14px; }
+  .cta-fill { position: absolute; inset: 0; background: var(--ink); transform: translateY(101%); transition: transform 180ms var(--micro); }
+  .cta-label { position: relative; display: grid; overflow: hidden; }
+  .cta-a, .cta-b { grid-area: 1 / 1; display: flex; align-items: center; gap: 0.75em; transition: transform 180ms var(--micro); }
+  .cta-b { color: var(--on-accent); transform: translateY(105%); }
+  .arw { display: inline-block; transition: transform 160ms var(--micro); }
+  .cta:is(:hover, :focus-visible):not(:disabled) .cta-fill { transform: translateY(0); }
+  .cta:is(:hover, :focus-visible):not(:disabled) .cta-a { transform: translateY(-105%); }
+  .cta:is(:hover, :focus-visible):not(:disabled) .cta-b { transform: translateY(0); }
+  .cta:hover:not(:disabled) .arw { transform: translateX(4px); }
+  .cta:disabled { opacity: 0.35; cursor: not-allowed; }
+  .mini { display: inline-block; width: 6px; height: 6px; background: var(--on-accent); }
+
+  .btn-ghost {
+    display: inline-flex; align-items: center; height: 32px; padding: 0 12px; border: 1px solid var(--line);
+    color: var(--ink); font-size: 11px; letter-spacing: 0.2em; text-transform: uppercase; cursor: pointer;
+  }
+
+  /* Persona panel */
+  #persona-dlg, #settings-dlg, #agent-dlg { width: min(860px, calc(100vw - 2rem)); max-height: calc(100dvh - 2rem); padding: 0; margin: auto;
+    color: var(--ink); background: var(--canvas); border: 1px solid var(--line); border-top: 4px solid var(--accent); }
+  #persona-dlg::backdrop, #settings-dlg::backdrop, #agent-dlg::backdrop { background: rgb(10 10 10 / 0.55); }
+
+  /* Agent chat */
+  #agent-dlg { width: min(1040px, calc(100vw - 2rem)); height: calc(100dvh - 2rem); }
+  #agent-dlg[open] { display: flex; flex-direction: column; }
+  .msg { max-width: 100%; font-size: 13px; line-height: 1.6; white-space: pre-wrap; overflow-wrap: anywhere; }
+  .msg-user { align-self: flex-end; max-width: 85%; padding: 10px 14px; background: var(--ink); color: var(--canvas); }
+  .msg-ai { border-left: 2px solid var(--accent); padding-left: 14px; }
+  .tool { border: 1px solid var(--line); font-size: 12px; }
+  .tool > summary { display: flex; gap: 10px; align-items: baseline; padding: 8px 12px; cursor: pointer; list-style: none; }
+  .tool > summary::-webkit-details-marker { display: none; }
+  .tool pre { margin: 0; padding: 10px 12px; max-height: 18rem; overflow: auto; border-top: 1px solid var(--line);
+    font-size: 11px; white-space: pre-wrap; overflow-wrap: anywhere; background: color-mix(in srgb, var(--ink) 4%, transparent); }
+  .tool[data-error] > summary .tname { color: var(--accent); }
+  .tool[data-wait] { border-color: var(--accent); }
+  .tname { font-weight: 700; text-transform: uppercase; letter-spacing: 0.12em; font-size: 10px; }
+  .chip { display: inline-flex; align-items: center; gap: 6px; padding: 5px 10px; border: 1px solid var(--line);
+    font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; cursor: pointer; }
+  .chip:has(:checked) { background: var(--ink); color: var(--canvas); }
+  .chip:has(:focus-visible) { outline: 2px solid var(--ink); outline-offset: 2px; }
+  .chip input { position: absolute; opacity: 0; pointer-events: none; }
+  .field select { display: block; width: 100%; padding: 10px 12px; background: var(--canvas); color: var(--ink); font: inherit; font-size: 14px; }
+
+  /* Target switch */
+  .seg button { position: relative; padding: 4px 10px; cursor: pointer; }
+  .seg button::before {
+    content: ""; position: absolute; inset: 0; background: var(--ink);
+    transform: scaleY(0); transform-origin: bottom; transition: transform 160ms var(--micro);
+  }
+  .seg button span { position: relative; }
+  .seg button[aria-pressed="true"] { color: var(--canvas); }
+  .seg button[aria-pressed="true"]::before { transform: scaleY(1); }
+  .dot { width: 6px; height: 6px; background: color-mix(in srgb, var(--ink) 35%, transparent); }
+  [data-health="ok"] .dot { background: var(--ink); }
+  [data-health="off"] .dot { background: var(--accent); }
+
+  /* Draft drawer: slides up, contents open like a shutter, lines stagger in */
+  #drawer { transform: translateY(calc(100% - var(--drawer-peek))); transition: transform 500ms var(--macro); }
+  #drawer[data-open="true"] { transform: translateY(0); }
+  #drawer-body { clip-path: inset(50% 0 50% 0); transition: clip-path 500ms var(--macro); }
+  #drawer[data-open="true"] #drawer-body { clip-path: inset(0 0 0 0); }
+  .dl-line { opacity: 0; transform: translateY(8px); transition: opacity 400ms var(--macro), transform 400ms var(--macro); }
+  #drawer[data-open="true"] .dl-line { opacity: 1; transform: none; transition-delay: calc(120ms + var(--i) * 60ms); }
+  .chev { display: inline-block; transition: transform 160ms var(--micro); }
+  #drawer[data-open="true"] .chev { transform: rotate(180deg); }
+
+  .person { transition: transform 500ms var(--macro), opacity 160ms var(--micro); }
+  .person.row-leave { opacity: 0; }
+
+  @media (prefers-reduced-motion: reduce) {
+    [class*="ld-"], .rail-x, .rail-y, .flash, .row-enter { animation: none !important; }
+    .ld-frame { animation: k-fade 150ms var(--micro) both !important; }
+    *, *::before, *::after { transition-duration: 1ms !important; transition-delay: 0ms !important; }
+  }
+</style>
+<script>
+  // Release the load sequence once Tailwind has injected its styles (or after 1.5 s regardless).
+  (function () {
+    var root = document.documentElement, t0 = performance.now();
+    (function tick() {
+      var ready = getComputedStyle(root).getPropertyValue('--color-canvas').trim();
+      if (ready || performance.now() - t0 > 1500) requestAnimationFrame(function () { root.classList.remove('boot'); });
+      else requestAnimationFrame(tick);
+    })();
+  })();
+</script>
+<script src="config.cloud.js" onerror="void 0"></script>
+<script src="config.js"></script>
+</head>
+<body class="bg-canvas text-ink font-mono antialiased selection:bg-ink selection:text-canvas">
+<a href="#flow" class="sr-only focus:not-sr-only focus:absolute focus:top-2 focus:left-2 focus:z-50 focus:bg-ink focus:text-canvas focus:px-3 focus:py-2 text-xs uppercase tracking-[0.2em]">Skip to post flow</a>
+
+<div class="frame ld-frame min-h-dvh flex flex-col">
+  <header class="band relative bg-canvas text-ink border-t-4 border-accent">
+    <div class="ld-rail flex flex-wrap items-center gap-x-6 gap-y-2 px-4 lg:px-8 py-3 text-[11px] tracking-[0.2em] uppercase">
+      <span class="font-bold">LI/Indo</span>
+      <span class="text-ink/50 hidden md:inline">v0.6 · agent</span>
+      <div class="ml-auto flex flex-wrap items-center gap-x-4 gap-y-2">
+        <div role="group" aria-label="Backend target" class="flex items-center gap-2">
+          <span class="text-ink/50" aria-hidden="true">Target</span>
+          <div class="seg flex border border-line">
+            <button type="button" data-target="mock" aria-pressed="false"><span>Mock</span></button>
+            <button type="button" data-target="local" aria-pressed="false"><span>Local</span></button>
+            <button type="button" data-target="cloud" aria-pressed="false"><span>Cloud</span></button>
+          </div>
+        </div>
+        <div role="group" aria-label="Drafting engine" class="flex items-center gap-2">
+          <span class="text-ink/50" aria-hidden="true">Engine</span>
+          <div class="seg flex border border-line">
+            <button type="button" data-engine="local" aria-pressed="false"><span>Local ML</span></button>
+            <button type="button" data-engine="llm" aria-pressed="false"><span>LLM</span></button>
+          </div>
+          <span id="llm-opts" class="flex items-center gap-2" hidden>
+            <label class="sr-only" for="llm-provider">LLM provider</label>
+            <select id="llm-provider" class="border border-line bg-transparent px-1 py-1 normal-case tracking-normal"></select>
+            <label class="sr-only" for="llm-model-sel">Model</label>
+            <select id="llm-model-sel" class="border border-line bg-transparent px-1 py-1 normal-case tracking-normal max-w-[16rem]"></select>
+            <label class="sr-only" for="llm-model">Custom model ID</label>
+            <input id="llm-model" size="22" placeholder="model ID" hidden class="border border-line bg-transparent px-1 py-1 normal-case tracking-normal">
+          </span>
+        </div>
+        <span id="health" class="flex items-center gap-2" data-health="checking">
+          <span class="dot" aria-hidden="true"></span>
+          <span id="health-text" aria-live="polite">Checking</span>
+        </span>
+        <span id="net" class="flex items-center gap-2" data-health="checking" title="Internet connection">
+          <span class="dot" aria-hidden="true"></span>
+          <span id="net-text" aria-live="polite">Net</span>
+        </span>
+        <button type="button" id="agent-btn" class="btn-ghost bx !border-accent" aria-haspopup="dialog">Agent</button>
+        <button type="button" id="persona-btn" class="btn-ghost bx" aria-haspopup="dialog">Persona</button>
+        <button type="button" id="settings-btn" class="btn-ghost bx" aria-haspopup="dialog">Settings</button>
+        <button type="button" id="auth-btn" class="btn-ghost bx" hidden>Sign in</button>
+      </div>
+    </div>
+    <div class="rail-x h-px bg-line" aria-hidden="true"></div>
+  </header>
+
+  <main id="main" class="relative flex-1 grid lg:grid-cols-12">
+    <div class="rail-y hidden lg:block absolute top-0 bottom-0 left-[58.3333%] w-px bg-line" aria-hidden="true"></div>
+
+    <section aria-labelledby="title" class="lg:col-span-7 px-4 lg:px-8 pt-10 lg:pt-16 pb-10 flex flex-col justify-between gap-12">
+      <h1 id="title" aria-label="LinkedIn Indo // Post Terminal" class="ld-head font-display font-extrabold uppercase leading-[0.84] tracking-[-0.045em] text-[clamp(2.25rem,10.5vw,5.5rem)] lg:text-[clamp(3rem,6vw,8rem)]">
+        <span class="block" aria-hidden="true">LinkedIn</span>
+        <span class="block pl-[14%]" aria-hidden="true">Indo</span>
+        <span class="block pl-[4%] text-accent" aria-hidden="true">//</span>
+        <span class="block pl-[26%]" aria-hidden="true">Post</span>
+        <span class="block" aria-hidden="true">Terminal</span>
+      </h1>
+      <div class="ld-copy grid sm:grid-cols-[minmax(0,34ch)_1fr] gap-8 items-end">
+        <p class="text-xs leading-relaxed text-ink/70 max-w-[34ch]">Drafts LinkedIn posts and comments in your voice from the facts you give it. Nothing is posted automatically.</p>
+        <dl class="grid grid-cols-[auto_1fr] gap-x-5 gap-y-1.5 text-[10px] tracking-[0.2em] uppercase sm:justify-self-end">
+          <dt class="text-ink/40">Input</dt><dd>TXT · MD · PDF · IMG · URL</dd>
+          <dt class="text-ink/40">Output</dt><dd>Markdown draft</dd>
+          <dt class="text-ink/40">Engine</dt><dd id="engine-label">Local ML</dd>
+          <dt class="text-ink/40">Policy</dt><dd>No invented facts</dd>
+        </dl>
+      </div>
+    </section>
+
+    <section id="flow" aria-labelledby="flow-title" class="lg:col-span-5 px-4 lg:px-8 pt-10 lg:pt-16 pb-10" tabindex="-1">
+      <h2 id="flow-title" class="sr-only">Post flow</h2>
+      <div class="mb-6">
+        <p id="step-label" class="ld-copy text-[11px] tracking-[0.2em] uppercase mb-3">Step 01 / 06 — Activity</p>
+        <ol id="tracker" aria-label="Progress" class="flex gap-2">
+          <li data-state="current" class="flex flex-col items-center gap-1"><button type="button" class="sq-hit ld-tracker" data-goto="0"><span class="sq"><span class="sq-f sq-cur"></span><span class="sq-f sq-done"></span></span></button><span class="text-[10px] tracking-[0.15em] text-ink/45" aria-hidden="true">01</span></li>
+          <li data-state="pending" class="flex flex-col items-center gap-1"><button type="button" class="sq-hit ld-tracker" data-goto="1" disabled><span class="sq"><span class="sq-f sq-cur"></span><span class="sq-f sq-done"></span></span></button><span class="text-[10px] tracking-[0.15em] text-ink/45" aria-hidden="true">02</span></li>
+          <li data-state="pending" class="flex flex-col items-center gap-1"><button type="button" class="sq-hit ld-tracker" data-goto="2" disabled><span class="sq"><span class="sq-f sq-cur"></span><span class="sq-f sq-done"></span></span></button><span class="text-[10px] tracking-[0.15em] text-ink/45" aria-hidden="true">03</span></li>
+          <li data-state="pending" class="flex flex-col items-center gap-1"><button type="button" class="sq-hit ld-tracker" data-goto="3" disabled><span class="sq"><span class="sq-f sq-cur"></span><span class="sq-f sq-done"></span></span></button><span class="text-[10px] tracking-[0.15em] text-ink/45" aria-hidden="true">04</span></li>
+          <li data-state="pending" class="flex flex-col items-center gap-1"><button type="button" class="sq-hit ld-tracker" data-goto="4" disabled><span class="sq"><span class="sq-f sq-cur"></span><span class="sq-f sq-done"></span></span></button><span class="text-[10px] tracking-[0.15em] text-ink/45" aria-hidden="true">05</span></li>
+          <li data-state="pending" class="flex flex-col items-center gap-1"><button type="button" class="sq-hit ld-tracker" data-goto="5" disabled><span class="sq"><span class="sq-f sq-cur"></span><span class="sq-f sq-done"></span></span></button><span class="text-[10px] tracking-[0.15em] text-ink/45" aria-hidden="true">06</span></li>
+        </ol>
+        <p id="cloud-note" class="status" hidden></p>
+        <p id="engine-note" class="status" hidden></p>
+      </div>
+
+      <div id="panels" class="ld-panels border-t border-line">
+
+        <!-- 01 Activity -->
+        <section class="panel" data-open aria-labelledby="h-0">
+          <h3><button type="button" class="panel-head bx" id="h-0" aria-expanded="true" aria-controls="b-0">
+            <span class="text-[11px] tracking-[0.2em] text-ink/50">01</span>
+            <span class="name font-display font-bold uppercase text-base tracking-[-0.01em]">Activity</span>
+            <span class="text-[11px] tracking-[0.18em] uppercase text-ink/60 truncate max-w-[16ch]" data-answer>—</span>
+            <span class="text-xs" data-mark aria-hidden="true"></span>
+          </button></h3>
+          <div class="panel-body" id="b-0" role="region" aria-labelledby="h-0">
+            <div class="panel-inner">
+              <form id="f-0" novalidate class="space-y-5">
+                <fieldset data-flip>
+                  <legend class="lbl">What are you writing?</legend>
+                  <div class="grid grid-cols-2 gap-3">
+                    <label class="tile bx"><input type="radio" name="activity" value="post" class="sr-only" checked><span class="tick" aria-hidden="true"></span><span class="text-xs uppercase tracking-[0.18em] font-bold">Post</span><span class="text-[10px] text-ink/50">Share an event</span></label>
+                    <label class="tile bx"><input type="radio" name="activity" value="comment" class="sr-only"><span class="tick" aria-hidden="true"></span><span class="text-xs uppercase tracking-[0.18em] font-bold">Comment</span><span class="text-[10px] text-ink/50">Reply to a post</span></label>
+                  </div>
+                </fieldset>
+                <div data-flip>
+                  <button type="submit" class="cta ld-cta"><span class="cta-fill" aria-hidden="true"></span><span class="cta-label"><span class="cta-a"><span class="t">Continue</span><span class="arw" aria-hidden="true">→</span></span><span class="cta-b" aria-hidden="true"><span class="t">Continue</span><span class="arw">→</span></span></span></button>
+                </div>
+              </form>
+            </div>
+          </div>
+        </section>
+
+        <!-- 02 Topic -->
+        <section class="panel" aria-labelledby="h-1">
+          <h3><button type="button" class="panel-head bx" id="h-1" aria-expanded="false" aria-controls="b-1" disabled>
+            <span class="text-[11px] tracking-[0.2em] text-ink/50">02</span>
+            <span class="name font-display font-bold uppercase text-base tracking-[-0.01em]">Topic</span>
+            <span class="text-[11px] tracking-[0.18em] uppercase text-ink/60 truncate max-w-[16ch]" data-answer>—</span>
+            <span class="text-xs" data-mark aria-hidden="true"></span>
+          </button></h3>
+          <div class="panel-body" id="b-1" role="region" aria-labelledby="h-1" hidden>
+            <div class="panel-inner">
+              <form id="f-1" novalidate class="space-y-5">
+                <div data-flip>
+                  <label for="i-topic" class="lbl">What is it about?</label>
+                  <span class="field bx"><textarea id="i-topic" name="topic" rows="2" aria-describedby="e-topic" placeholder="Won second place at the Kochi GenAI hackathon"></textarea></span>
+                  <p class="err" id="e-topic"></p>
+                </div>
+                <div data-flip id="comment-wrap" hidden>
+                  <label for="i-post-text" class="lbl">Paste the post you are replying to</label>
+                  <span class="field bx"><textarea id="i-post-text" name="post_text" rows="4" aria-describedby="e-post-text"></textarea></span>
+                  <p class="err" id="e-post-text"></p>
+                </div>
+                <div data-flip>
+                  <button type="submit" class="cta"><span class="cta-fill" aria-hidden="true"></span><span class="cta-label"><span class="cta-a"><span class="t">Continue</span><span class="arw" aria-hidden="true">→</span></span><span class="cta-b" aria-hidden="true"><span class="t">Continue</span><span class="arw">→</span></span></span></button>
+                </div>
+              </form>
+            </div>
+          </div>
+        </section>
+
+        <!-- 03 Date -->
+        <section class="panel" aria-labelledby="h-2">
+          <h3><button type="button" class="panel-head bx" id="h-2" aria-expanded="false" aria-controls="b-2" disabled>
+            <span class="text-[11px] tracking-[0.2em] text-ink/50">03</span>
+            <span class="name font-display font-bold uppercase text-base tracking-[-0.01em]">Date</span>
+            <span class="text-[11px] tracking-[0.18em] uppercase text-ink/60 truncate max-w-[16ch]" data-answer>—</span>
+            <span class="text-xs" data-mark aria-hidden="true"></span>
+          </button></h3>
+          <div class="panel-body" id="b-2" role="region" aria-labelledby="h-2" hidden>
+            <div class="panel-inner">
+              <form id="f-2" novalidate class="space-y-5">
+                <div data-flip>
+                  <label for="i-when" class="lbl">When did it happen?</label>
+                  <span class="field bx"><input id="i-when" name="when" type="text" autocomplete="off" aria-describedby="e-when" placeholder="12–14 Oct 2026, or last weekend"></span>
+                  <p class="err" id="e-when"></p>
+                </div>
+                <div data-flip>
+                  <button type="submit" class="cta"><span class="cta-fill" aria-hidden="true"></span><span class="cta-label"><span class="cta-a"><span class="t">Continue</span><span class="arw" aria-hidden="true">→</span></span><span class="cta-b" aria-hidden="true"><span class="t">Continue</span><span class="arw">→</span></span></span></button>
+                </div>
+              </form>
+            </div>
+          </div>
+        </section>
+
+        <!-- 04 Event source -->
+        <section class="panel" aria-labelledby="h-3">
+          <h3><button type="button" class="panel-head bx" id="h-3" aria-expanded="false" aria-controls="b-3" disabled>
+            <span class="text-[11px] tracking-[0.2em] text-ink/50">04</span>
+            <span class="name font-display font-bold uppercase text-base tracking-[-0.01em]">Event source</span>
+            <span class="text-[11px] tracking-[0.18em] uppercase text-ink/60 truncate max-w-[16ch]" data-answer>—</span>
+            <span class="text-xs" data-mark aria-hidden="true"></span>
+          </button></h3>
+          <div class="panel-body" id="b-3" role="region" aria-labelledby="h-3" hidden>
+            <div class="panel-inner">
+              <form id="f-3" novalidate class="space-y-5">
+                <fieldset data-flip>
+                  <legend class="lbl">Where are the event details?</legend>
+                  <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                    <label class="tile bx"><input type="radio" name="source" value="file" class="sr-only"><span class="tick" aria-hidden="true"></span><span class="text-xs uppercase tracking-[0.18em] font-bold">File</span><span class="text-[10px] text-ink/50">TXT MD PDF</span></label>
+                    <label class="tile bx"><input type="radio" name="source" value="image" class="sr-only"><span class="tick" aria-hidden="true"></span><span class="text-xs uppercase tracking-[0.18em] font-bold">Image</span><span class="text-[10px] text-ink/50">Poster, slide</span></label>
+                    <label class="tile bx"><input type="radio" name="source" value="url" class="sr-only"><span class="tick" aria-hidden="true"></span><span class="text-xs uppercase tracking-[0.18em] font-bold">URL</span><span class="text-[10px] text-ink/50">Event page</span></label>
+                    <label class="tile bx"><input type="radio" name="source" value="skip" class="sr-only" checked><span class="tick" aria-hidden="true"></span><span class="text-xs uppercase tracking-[0.18em] font-bold">Skip</span><span class="text-[10px] text-ink/50">Answers only</span></label>
+                  </div>
+                </fieldset>
+                <div data-flip data-src="file" hidden>
+                  <label for="i-file" class="lbl">Event document · .txt .md .pdf · max 4 MB</label>
+                  <span class="field bx"><input id="i-file" name="file" type="file" accept=".txt,.md,.pdf,text/plain,text/markdown,application/pdf" aria-describedby="e-file"></span>
+                  <p class="err" id="e-file"></p>
+                </div>
+                <div data-flip data-src="image" hidden>
+                  <label for="i-image" class="lbl">Event image · PNG JPEG GIF WebP · max 4 MB</label>
+                  <span class="field bx"><input id="i-image" name="image" type="file" accept="image/png,image/jpeg,image/gif,image/webp" aria-describedby="e-image"></span>
+                  <p class="err" id="e-image"></p>
+                </div>
+                <div data-flip data-src="url" hidden>
+                  <label for="i-url" class="lbl">Event page URL</label>
+                  <span class="field bx"><input id="i-url" name="url" type="url" inputmode="url" autocomplete="off" aria-describedby="e-url h-url" placeholder="https://"></span>
+                  <p class="err" id="e-url"></p>
+                  <p id="h-url" class="mt-2 text-[10px] leading-relaxed text-ink/50">The backend fetches this page. Pages behind a login usually return little text; upload a file instead.</p>
+                </div>
+                <p data-flip data-src="skip" class="text-[11px] leading-relaxed text-ink/60">No event material. The draft uses only your answers.</p>
+                <div data-flip>
+                  <button type="submit" class="cta"><span class="cta-fill" aria-hidden="true"></span><span class="cta-label"><span class="cta-a"><span class="t">Continue</span><span class="arw" aria-hidden="true">→</span></span><span class="cta-b" aria-hidden="true"><span class="t">Continue</span><span class="arw">→</span></span></span></button>
+                </div>
+              </form>
+            </div>
+          </div>
+        </section>
+
+        <!-- 05 Tag people -->
+        <section class="panel" aria-labelledby="h-4">
+          <h3><button type="button" class="panel-head bx" id="h-4" aria-expanded="false" aria-controls="b-4" disabled>
+            <span class="text-[11px] tracking-[0.2em] text-ink/50">05</span>
+            <span class="name font-display font-bold uppercase text-base tracking-[-0.01em]">Tag people</span>
+            <span class="text-[11px] tracking-[0.18em] uppercase text-ink/60 truncate max-w-[16ch]" data-answer>—</span>
+            <span class="text-xs" data-mark aria-hidden="true"></span>
+          </button></h3>
+          <div class="panel-body" id="b-4" role="region" aria-labelledby="h-4" hidden>
+            <div class="panel-inner">
+              <form id="f-4" novalidate class="space-y-5">
+                <p data-flip class="text-[11px] leading-relaxed text-ink/60">Optional. Add people to thank and say why you are tagging each one, so the post thanks them for the right thing. You add the @tags yourself in LinkedIn's editor.</p>
+                <div id="people" class="space-y-4"></div>
+                <div data-flip class="flex flex-wrap items-center gap-3">
+                  <button type="button" id="add-person" class="btn-ghost bx">+ Add person</button>
+                  <button type="submit" class="cta"><span class="cta-fill" aria-hidden="true"></span><span class="cta-label"><span class="cta-a"><span class="t">Continue</span><span class="arw" aria-hidden="true">→</span></span><span class="cta-b" aria-hidden="true"><span class="t">Continue</span><span class="arw">→</span></span></span></button>
+                </div>
+              </form>
+            </div>
+          </div>
+        </section>
+
+        <!-- 06 Review -->
+        <section class="panel" aria-labelledby="h-5">
+          <h3><button type="button" class="panel-head bx" id="h-5" aria-expanded="false" aria-controls="b-5" disabled>
+            <span class="text-[11px] tracking-[0.2em] text-ink/50">06</span>
+            <span class="name font-display font-bold uppercase text-base tracking-[-0.01em]">Review</span>
+            <span class="text-[11px] tracking-[0.18em] uppercase text-ink/60 truncate max-w-[16ch]" data-answer>—</span>
+            <span class="text-xs" data-mark aria-hidden="true"></span>
+          </button></h3>
+          <div class="panel-body" id="b-5" role="region" aria-labelledby="h-5" hidden>
+            <div class="panel-inner space-y-5">
+              <form id="f-5" novalidate class="space-y-5">
+                <dl id="review-dl" data-flip class="grid grid-cols-[7.5rem_minmax(0,1fr)] gap-x-4 gap-y-2 text-xs"></dl>
+                <div data-flip class="space-y-2">
+                  <label for="i-inspiration" class="lbl">Borrow the format of a post you liked · optional</label>
+                  <span class="field bx"><select id="i-inspiration"><option value="">None, use my usual format</option></select></span>
+                  <label class="flex items-center gap-2 text-[11px] text-ink/70"><input type="checkbox" id="i-credit"> Credit the author in the post</label>
+                  <p class="text-[10px] text-ink/45">Only the structure is borrowed (hook, layout, ending). An originality check flags any copied phrase. Add posts you liked under Persona.</p>
+                </div>
+                <p data-flip class="text-[10px] leading-relaxed text-ink/50">Sent to <span id="sent-to" class="text-ink/80">—</span>. <span id="engine-privacy">With the Local ML engine nothing leaves the backend. With LLM, your answers, event material and any pasted bios go to the chosen provider to write the draft.</span></p>
+                <div data-flip>
+                  <button type="submit" class="cta" id="gen-btn"><span class="cta-fill" aria-hidden="true"></span><span class="cta-label"><span class="cta-a"><span class="t">Generate draft</span><span class="arw" aria-hidden="true">→</span></span><span class="cta-b" aria-hidden="true"><span class="t">Generate draft</span><span class="arw">→</span></span></span></button>
+                </div>
+                <p id="review-status" class="status" role="status" data-flip></p>
+                <article id="draft-out" data-flip hidden tabindex="-1" aria-label="Generated draft" class="border border-line p-4 text-[13px] leading-relaxed whitespace-pre-wrap"></article>
+              </form>
+              <form id="f-revise" data-flip novalidate hidden class="space-y-3">
+                <label for="i-feedback" class="lbl">Request changes</label>
+                <span class="field bx"><textarea id="i-feedback" name="feedback" rows="2" aria-describedby="e-feedback" placeholder="Shorter, and mention the mentors first"></textarea></span>
+                <p class="err" id="e-feedback"></p>
+                <button type="submit" class="btn-ghost bx" id="revise-btn">Revise draft</button>
+              </form>
+            </div>
+          </div>
+        </section>
+      </div>
+    </section>
+  </main>
+</div>
+
+<datalist id="reason-list">
+  <option value="mentor"><option value="teammate"><option value="organiser"><option value="judge">
+  <option value="speaker"><option value="sponsor"><option value="colleague"><option value="friend">
+</datalist>
+
+<template id="tpl-person">
+  <fieldset class="person border border-line p-4 space-y-4" data-flip>
+    <legend class="lbl px-1 mb-0">Person <span data-n></span></legend>
+    <div>
+      <label class="lbl" data-k="name">Name</label>
+      <span class="field bx"><input data-k="name" name="person_name" type="text" autocomplete="off"></span>
+      <p class="err" data-e="name"></p>
+    </div>
+    <div>
+      <label class="lbl" data-k="url">LinkedIn URL · optional</label>
+      <span class="field bx"><input data-k="url" name="person_url" type="url" inputmode="url" autocomplete="off" placeholder="https://www.linkedin.com/in/"></span>
+      <p class="err" data-e="url"></p>
+    </div>
+    <div>
+      <label class="lbl" data-k="reason">Why are you tagging them?</label>
+      <span class="field bx"><input data-k="reason" name="person_reason" type="text" list="reason-list" autocomplete="off" placeholder="mentor, teammate, organiser… or your own words"></span>
+      <p class="err" data-e="reason"></p>
+    </div>
+    <div>
+      <label class="lbl" data-k="bio">Headline or About · optional, pasted</label>
+      <span class="field bx"><textarea data-k="bio" name="person_bio" rows="2"></textarea></span>
+    </div>
+    <button type="button" class="remove btn-ghost bx">Remove</button>
+  </fieldset>
+</template>
+
+<dialog id="persona-dlg" aria-labelledby="persona-title">
+  <div class="flex items-center gap-4 px-5 py-4 border-b border-line sticky top-0 bg-canvas z-10">
+    <h2 id="persona-title" class="font-display font-bold uppercase text-lg tracking-[-0.01em]">Your persona</h2>
+    <span id="persona-state" class="text-[11px] tracking-[0.18em] uppercase text-ink/50"></span>
+    <button type="button" id="persona-close" class="btn-ghost bx ml-auto">Close</button>
+  </div>
+  <div class="px-5 py-5 space-y-8 overflow-y-auto">
+    <p class="text-[12px] leading-relaxed text-ink/70">Teach the app how you write. It learns from your own posts and your answers, then writes every draft as you. Everything stays on this computer.</p>
+
+    <section id="persona-summary" class="border border-line p-4 space-y-1 text-[12px] leading-relaxed" hidden aria-live="polite"></section>
+
+    <!-- 0. Scan -->
+    <form id="persona-scan" novalidate class="space-y-3 border-l-2 border-accent pl-4">
+      <h3 class="lbl !text-ink !mb-0">Quick start · scan your LinkedIn profile</h3>
+      <p class="text-[12px] leading-relaxed text-ink/70">Reads your <strong>public</strong> profile page once (what anyone sees signed out): name, headline, about and your most recent public posts. No login, nothing posted. Your profile's public visibility must be on.</p>
+      <div class="flex flex-wrap items-end gap-3">
+        <div class="flex-1 min-w-[16rem]"><label class="lbl" for="ps-url">Profile URL</label><span class="field bx"><input id="ps-url" type="url" inputmode="url" placeholder="https://www.linkedin.com/in/you" aria-describedby="pse-url"></span></div>
+        <button type="submit" class="cta" id="scan-btn"><span class="cta-fill" aria-hidden="true"></span><span class="cta-label"><span class="cta-a"><span class="t">Scan profile</span><span class="arw" aria-hidden="true">→</span></span><span class="cta-b" aria-hidden="true"><span class="t">Scan profile</span><span class="arw">→</span></span></span></button>
+      </div>
+      <p class="err" id="pse-url"></p>
+      <label class="flex items-center gap-2 text-[11px] text-ink/70"><input type="checkbox" id="ps-overwrite"> Replace the headline and about I already typed</label>
+      <p id="persona-scan-status" class="status" role="status"></p>
+    </form>
+
+    <!-- 1. About you -->
+    <form id="persona-form" novalidate class="space-y-5">
+      <h3 class="lbl !text-ink !mb-0">1 · About you and how you write</h3>
+      <div class="grid md:grid-cols-2 gap-4">
+        <div><label class="lbl" for="pa-name">Your name</label><span class="field bx"><input id="pa-name" name="name" autocomplete="name" aria-describedby="pe-name"></span><p class="err" id="pe-name"></p></div>
+        <div><label class="lbl" for="pa-url">Your LinkedIn URL</label><span class="field bx"><input id="pa-url" name="linkedin_url" type="url" inputmode="url" placeholder="https://www.linkedin.com/in/you" aria-describedby="pe-url"></span><p class="err" id="pe-url"></p></div>
+        <div class="md:col-span-2"><label class="lbl" for="pa-headline">Headline</label><span class="field bx"><input id="pa-headline" name="headline" placeholder="Cloud and AI builder · AWS Community Builder"></span></div>
+        <div class="md:col-span-2"><label class="lbl" for="pa-about">About you · optional</label><span class="field bx"><textarea id="pa-about" name="about" rows="2"></textarea></span></div>
+      </div>
+      <fieldset><legend class="lbl">Your tone · pick up to 4</legend><div id="pa-tone" class="flex flex-wrap gap-2"></div></fieldset>
+      <div class="grid md:grid-cols-2 gap-4">
+        <fieldset><legend class="lbl">Emoji</legend><div id="pa-emoji" class="flex flex-wrap gap-2"></div></fieldset>
+        <fieldset><legend class="lbl">Post length</legend><div id="pa-length" class="flex flex-wrap gap-2"></div></fieldset>
+      </div>
+      <div class="grid md:grid-cols-2 gap-4">
+        <div><label class="lbl" for="pa-audience">Who reads your posts?</label><span class="field bx"><input id="pa-audience" name="audience" placeholder="students, cloud engineers, recruiters"></span></div>
+        <div><label class="lbl" for="pa-goals">What do you want from posting?</label><span class="field bx"><input id="pa-goals" name="goals" placeholder="share what I learn, find internships"></span></div>
+        <div><label class="lbl" for="pa-avoid">Words you never use</label><span class="field bx"><input id="pa-avoid" name="avoid" placeholder="synergy, game changer, humbled"></span></div>
+        <div><label class="lbl" for="pa-signature">Your usual sign-off</label><span class="field bx"><input id="pa-signature" name="signature" placeholder="Keep building."></span></div>
+        <div class="md:col-span-2"><label class="lbl" for="pa-hashtags">Hashtags you always use</label><span class="field bx"><input id="pa-hashtags" name="hashtags" placeholder="#AWS, #BuildInPublic"></span></div>
+      </div>
+      <div class="flex flex-wrap items-center gap-3">
+        <button type="submit" class="cta"><span class="cta-fill" aria-hidden="true"></span><span class="cta-label"><span class="cta-a"><span class="t">Save and train</span><span class="arw" aria-hidden="true">→</span></span><span class="cta-b" aria-hidden="true"><span class="t">Save and train</span><span class="arw">→</span></span></span></button>
+        <p id="persona-form-status" class="status !mt-0" role="status"></p>
+      </div>
+    </form>
+
+    <!-- 2. Your posts -->
+    <form id="persona-import" novalidate class="space-y-4">
+      <h3 class="lbl !text-ink !mb-0">2 · Load every post you have written</h3>
+      <ol class="text-[12px] leading-relaxed text-ink/70 list-decimal pl-5 space-y-1">
+        <li>Open LinkedIn's <a class="underline" href="https://www.linkedin.com/mypreferences/d/download-my-data" target="_blank" rel="noopener">Get a copy of your data</a> page.</li>
+        <li>Choose <em>Want something in particular?</em>, tick <strong>Posts</strong> (and Profile, Comments), and request the archive. LinkedIn emails a link, usually within minutes.</li>
+        <li>Upload the ZIP here. The app reads every post you have published (the profile scan above only sees recent ones). It never logs in to LinkedIn.</li>
+      </ol>
+      <div><label class="lbl" for="pi-zip">LinkedIn export ZIP</label><span class="field bx"><input id="pi-zip" type="file" accept=".zip,application/zip"></span></div>
+      <div><label class="lbl" for="pi-text">Or paste posts · separate them with a line of ---</label><span class="field bx"><textarea id="pi-text" rows="4"></textarea></span></div>
+      <div class="flex flex-wrap items-center gap-3">
+        <button type="submit" class="btn-ghost bx">Import and train</button>
+        <p id="persona-import-status" class="status !mt-0" role="status"></p>
+      </div>
+    </form>
+
+    <!-- 3. Posts you liked -->
+    <form id="persona-insp" novalidate class="space-y-4">
+      <h3 class="lbl !text-ink !mb-0">3 · Posts you liked (borrow the format, not the words)</h3>
+      <p class="text-[12px] leading-relaxed text-ink/70">Copy the text of someone's post (LinkedIn: ··· then Copy text) and paste it here. The app keeps only its shape: how it opens, its layout, lists and ending. Your drafts can use that shape with your own facts and voice.</p>
+      <div><label class="lbl" for="pn-text">Their post</label><span class="field bx"><textarea id="pn-text" rows="4" aria-describedby="pne-text"></textarea></span><p class="err" id="pne-text"></p></div>
+      <div class="grid md:grid-cols-2 gap-4 items-end">
+        <div><label class="lbl" for="pn-author">Author · for credit</label><span class="field bx"><input id="pn-author" placeholder="Jane Doe"></span></div>
+        <label class="flex items-center gap-2 text-[11px] text-ink/70 pb-3"><input type="checkbox" id="pn-credit"> Credit them by default</label>
+      </div>
+      <button type="submit" class="btn-ghost bx">Save inspiration</button>
+      <ul id="persona-insp-list" class="space-y-3"></ul>
+    </form>
+  </div>
+</dialog>
+
+<dialog id="settings-dlg" aria-labelledby="settings-title">
+  <div class="flex items-center gap-4 px-5 py-4 border-b border-line sticky top-0 bg-canvas z-10">
+    <h2 id="settings-title" class="font-display font-bold uppercase text-lg tracking-[-0.01em]">Settings</h2>
+    <span class="text-[11px] tracking-[0.18em] uppercase text-ink/50">Connections · stays on this computer</span>
+    <button type="button" id="settings-close" class="btn-ghost bx ml-auto">Close</button>
+  </div>
+  <form id="settings-form" novalidate class="px-5 py-5 space-y-8 overflow-y-auto">
+    <p class="text-[12px] leading-relaxed text-ink/70">Keys and AWS credentials are saved in <code id="set-file" class="text-[11px]"></code> (readable only by you), so the LLM engine and the Agent work when the app starts from the apps menu. A field left blank keeps what is saved.</p>
+
+    <section class="space-y-4">
+      <h3 class="lbl !text-ink !mb-0">Claude on Amazon Bedrock</h3>
+      <p class="text-[12px] leading-relaxed text-ink/70">Use an AWS profile from <code>~/.aws</code>, or paste access keys. Leave both empty to use the default AWS credentials on this machine.</p>
+      <div class="grid md:grid-cols-2 gap-4">
+        <div><label class="lbl" for="set-region">Region</label><span class="field bx"><input id="set-region" placeholder="us-east-1" autocomplete="off"></span></div>
+        <div><label class="lbl" for="set-profile">AWS profile · optional</label><span class="field bx"><input id="set-profile" placeholder="default" autocomplete="off"></span></div>
+        <div><label class="lbl" for="set-akid">Access key ID · optional</label><span class="field bx"><input id="set-akid" autocomplete="off" spellcheck="false"></span></div>
+        <div><label class="lbl" for="set-secret">Secret access key</label><span class="field bx"><input id="set-secret" type="password" autocomplete="off"></span></div>
+        <div class="md:col-span-2"><label class="lbl" for="set-token">Session token · only for temporary keys</label><span class="field bx"><input id="set-token" type="password" autocomplete="off"></span></div>
+      </div>
+      <div class="flex flex-wrap items-center gap-3">
+        <button type="button" id="set-import" class="btn-ghost bx" hidden>Import from Claude Code</button>
+        <button type="button" id="set-clear-aws" class="btn-ghost bx">Forget AWS keys</button>
+        <span id="set-aws-state" class="text-[11px] text-ink/60"></span>
+      </div>
+    </section>
+
+    <section class="space-y-4">
+      <h3 class="lbl !text-ink !mb-0">API keys</h3>
+      <div id="set-keys" class="grid md:grid-cols-2 gap-4"></div>
+    </section>
+
+    <section class="space-y-3">
+      <h3 class="lbl !text-ink !mb-0">Agent workspace</h3>
+      <p class="text-[12px] leading-relaxed text-ink/70">The folder the Agent can read and, with your approval, write to and run commands in.</p>
+      <span class="field bx"><input id="set-workspace" autocomplete="off" spellcheck="false"></span>
+    </section>
+
+    <div class="flex flex-wrap items-center gap-3">
+      <button type="submit" class="cta"><span class="cta-fill" aria-hidden="true"></span><span class="cta-label"><span class="cta-a"><span class="t">Save</span><span class="arw" aria-hidden="true">→</span></span><span class="cta-b" aria-hidden="true"><span class="t">Save</span><span class="arw">→</span></span></span></button>
+      <label class="sr-only" for="set-test-provider">Provider to test</label>
+      <select id="set-test-provider" class="border border-line px-2 h-8 text-[12px]"></select>
+      <button type="button" id="set-test" class="btn-ghost bx">Test connection</button>
+    </div>
+    <p id="settings-status" class="status" role="status"></p>
+  </form>
+</dialog>
+
+<dialog id="agent-dlg" aria-labelledby="agent-title">
+  <div class="flex flex-wrap items-center gap-3 px-5 py-3 border-b border-line bg-canvas">
+    <h2 id="agent-title" class="font-display font-bold uppercase text-lg tracking-[-0.01em]">Agent</h2>
+    <label class="sr-only" for="ag-provider">Provider</label>
+    <select id="ag-provider" class="border border-line px-2 h-8 text-[12px]"></select>
+    <label class="sr-only" for="ag-model">Model</label>
+    <select id="ag-model" class="border border-line px-2 h-8 text-[12px] max-w-[18rem]"></select>
+    <span id="ag-ws" class="text-[10px] text-ink/50 truncate max-w-[22rem]" title="Workspace"></span>
+    <button type="button" id="ag-new" class="btn-ghost bx ml-auto">New chat</button>
+    <button type="button" id="agent-close" class="btn-ghost bx">Close</button>
+  </div>
+  <div id="ag-log" class="flex-1 overflow-y-auto px-5 py-5 flex flex-col gap-4" aria-live="polite">
+  </div>
+  <form id="ag-form" novalidate class="border-t border-line px-5 py-3 space-y-2">
+    <p id="ag-status" class="status !mt-0" role="status"></p>
+    <div class="flex items-end gap-3">
+      <span class="field bx flex-1"><label class="sr-only" for="ag-input">Message</label><textarea id="ag-input" rows="2" placeholder="Find the AWS Community Day Kochi 2026 page and draft a post about my talk there…"></textarea></span>
+      <button type="submit" class="cta" id="ag-send"><span class="cta-fill" aria-hidden="true"></span><span class="cta-label"><span class="cta-a"><span class="t">Send</span><span class="arw" aria-hidden="true">→</span></span><span class="cta-b" aria-hidden="true"><span class="t">Send</span><span class="arw">→</span></span></span></button>
+      <button type="button" id="ag-stop" class="btn-ghost bx h-11" hidden>Stop</button>
+    </div>
+    <p class="text-[10px] text-ink/45">Ctrl+Enter sends. Searches the web and reads pages by itself; writing files and running commands always ask you first. Uses Claude through Anthropic or Amazon Bedrock (Settings).</p>
+  </form>
+</dialog>
+
+<div class="ld-drawer fixed inset-x-0 bottom-0 z-40">
+  <aside id="drawer" aria-label="Draft" data-open="false" class="bg-canvas border-t border-line">
+    <div class="h-11 px-4 lg:px-8 flex items-center gap-4 text-[11px] tracking-[0.2em] uppercase">
+      <button type="button" id="drawer-toggle" aria-expanded="false" aria-controls="drawer-body" class="flex items-center gap-2 h-9 -ml-2 px-2 uppercase tracking-[0.2em]">
+        <span>Draft</span><span class="chev" aria-hidden="true">▲</span>
+      </button>
+      <span id="count" class="text-ink/60">0/6 complete</span>
+      <span id="save-status" role="status" class="status !mt-0 truncate"></span>
+      <span class="ml-auto flex items-center gap-3">
+        <button type="button" id="new-post" class="btn-ghost bx" hidden>New post</button>
+        <button type="button" id="save-btn" class="cta cta-sm" disabled><span class="cta-fill" aria-hidden="true"></span><span class="cta-label"><span class="cta-a"><span class="mini" aria-hidden="true"></span><span class="t">Save draft</span></span><span class="cta-b" aria-hidden="true"><span class="mini"></span><span class="t">Save draft</span></span></span></button>
+      </span>
+    </div>
+    <div id="drawer-body" inert class="px-4 lg:px-8 pt-2 pb-5">
+      <dl class="grid grid-cols-2 md:grid-cols-5 gap-x-6 gap-y-3 text-[11px]">
+        <div class="dl-line" style="--i:0"><dt class="text-[10px] tracking-[0.2em] uppercase text-ink/45 mb-1">Activity</dt><dd id="s-activity" class="truncate">—</dd></div>
+        <div class="dl-line" style="--i:1"><dt class="text-[10px] tracking-[0.2em] uppercase text-ink/45 mb-1">Topic</dt><dd id="s-topic" class="truncate">—</dd></div>
+        <div class="dl-line" style="--i:2"><dt class="text-[10px] tracking-[0.2em] uppercase text-ink/45 mb-1">When</dt><dd id="s-when" class="truncate">—</dd></div>
+        <div class="dl-line" style="--i:3"><dt class="text-[10px] tracking-[0.2em] uppercase text-ink/45 mb-1">Source</dt><dd id="s-source" class="truncate">—</dd></div>
+        <div class="dl-line" style="--i:4"><dt class="text-[10px] tracking-[0.2em] uppercase text-ink/45 mb-1">People</dt><dd id="s-people" class="truncate">—</dd></div>
+        <div class="dl-line col-span-2 md:col-span-5" style="--i:5"><dt class="text-[10px] tracking-[0.2em] uppercase text-ink/45 mb-1">Draft</dt><dd id="s-draft" class="line-clamp-2 text-ink/80">—</dd></div>
+      </dl>
+    </div>
+  </aside>
+</div>
+
+<div id="announcer" class="sr-only" aria-live="polite"></div>
+
+<script>
+(() => {
+  'use strict';
+
+  const CFG = window.INDO_CONFIG || {};
+  const TARGETS = ['mock', 'local', 'cloud'];
+  const STEPS = ['Activity', 'Topic', 'Date', 'Event source', 'Tag people', 'Review'];
+  const MAX_FILE = 4 * 1024 * 1024;
+  const IMAGE_TYPES = ['image/png', 'image/jpeg', 'image/gif', 'image/webp'];
+  const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)');
+
+  const $ = (s, r = document) => r.querySelector(s);
+  const $$ = (s, r = document) => [...r.querySelectorAll(s)];
+  const wait = (ms) => new Promise((r) => setTimeout(r, ms));
+  const pad = (n) => String(n).padStart(2, '0');
+
+  const panels = $$('.panel');
+  const heads = panels.map((p) => $('.panel-head', p));
+  const bodies = panels.map((p) => $('.panel-body', p));
+  const forms = STEPS.map((_, i) => $(`#f-${i}`));
+  const trackerItems = $$('#tracker > li');
+  const drawer = $('#drawer');
+  const drawerBody = $('#drawer-body');
+  const drawerToggle = $('#drawer-toggle');
+  const saveBtn = $('#save-btn');
+  const newPostBtn = $('#new-post');
+  const genBtn = $('#gen-btn');
+  const reviseForm = $('#f-revise');
+  const draftOut = $('#draft-out');
+  const peopleList = $('#people');
+
+  const blankData = () => ({ activity: 'post', topic: '', post_text: '', when: '', source: { type: 'skip' }, people: [] });
+
+  const savedTarget = localStorage.getItem('indo.target');
+  const state = {
+    target: TARGETS.includes(savedTarget) ? savedTarget : (CFG.defaultTarget || 'mock'),
+    open: 0,
+    done: new Set(),
+    moving: false,
+    busy: false,
+    data: blankData(),
+    draft: '',
+    history: [],
+  };
+
+  // ---------- Motion helpers ----------
+
+  // FLIP: measure, mutate, then slide moved blocks from their old position (transform only).
+  function flip(mutate) {
+    if (reduceMotion.matches) { mutate(); return; }
+    const tracked = $$('.panel, [data-flip]');
+    const first = new Map(tracked.map((el) => [el, el.getBoundingClientRect().top]));
+    mutate();
+    const tops = new Map();
+    const top = (el) => { if (!tops.has(el)) tops.set(el, el.getBoundingClientRect().top); return tops.get(el); };
+    const moves = [];
+    for (const el of $$('.panel, [data-flip]')) {
+      if (!first.has(el) || !el.getClientRects().length) continue;
+      let d = first.get(el) - top(el);
+      const panel = el.classList.contains('panel') ? null : el.closest('.panel');
+      if (panel) d -= first.get(panel) - top(panel);
+      if (Math.abs(d) > 0.5) moves.push([el, d]);
+    }
+    for (const [el, d] of moves) { el.style.transition = 'none'; el.style.transform = `translateY(${d}px)`; }
+    document.body.offsetHeight;
+    for (const [el] of moves) { el.style.transition = ''; el.style.transform = ''; }
+  }
+
+  function flash(el) {
+    el.classList.remove('flash');
+    void el.offsetWidth;
+    el.classList.add('flash');
+  }
+
+  document.addEventListener('animationend', (e) => {
+    const el = e.target;
+    if (el.classList.contains('row-enter') || el.classList.contains('flash')) el.classList.remove('row-enter', 'flash');
+    // Load classes inside panels would replay when a panel reopens.
+    if (el.closest('.panel-body')) el.classList.remove('ld-cta');
+  });
+
+  function announce(msg) {
+    const a = $('#announcer');
+    a.textContent = '';
+    requestAnimationFrame(() => { a.textContent = msg; });
+  }
+
+  function setCta(btn, text) { $$('.t', btn).forEach((t) => { t.textContent = text; }); }
+
+  // ---------- Steps and tracker ----------
+
+  function firstIncomplete() {
+    for (let i = 0; i < STEPS.length; i++) if (!state.done.has(i)) return i;
+    return STEPS.length - 1;
+  }
+
+  const reachable = (i) => state.done.has(i) || i === state.open || i <= firstIncomplete();
+
+  function sourceLabel(src) {
+    if (!src || src.type === 'skip') return 'Skipped';
+    if (src.type === 'url') { try { return `URL · ${new URL(src.url).hostname}`; } catch { return `URL · ${src.url}`; } }
+    return `${src.type} · ${src.name}`;
+  }
+
+  const answers = [
+    () => state.data.activity,
+    () => state.data.topic,
+    () => state.data.when,
+    () => sourceLabel(state.data.source),
+    () => { const n = state.data.people.length; return n ? `${n} ${n === 1 ? 'person' : 'people'}` : 'None'; },
+    () => 'Draft ready',
+  ];
+
+  function renderSteps() {
+    trackerItems.forEach((li, i) => {
+      const s = i === state.open ? 'current' : state.done.has(i) ? 'done' : 'pending';
+      li.dataset.state = s;
+      const b = $('button', li);
+      b.disabled = !reachable(i);
+      b.setAttribute('aria-label', `Step ${i + 1}, ${STEPS[i]}, ${s === 'done' ? 'completed' : s}`);
+      if (s === 'current') b.setAttribute('aria-current', 'step'); else b.removeAttribute('aria-current');
+    });
+    heads.forEach((h, i) => {
+      h.disabled = !reachable(i);
+      const done = state.done.has(i);
+      $('[data-answer]', h).textContent = done ? answers[i]() : '—';
+      $('[data-mark]', h).textContent = done ? '✓' : '';
+    });
+    $('#step-label').textContent = `Step ${pad(state.open + 1)} / 06 — ${STEPS[state.open]}`;
+    $('#count').textContent = `${state.done.size}/6 complete`;
+    saveBtn.disabled = !state.draft || state.busy;
+  }
+
+  function firstFocusable(root) {
+    return $$('input, textarea, button', root).find((el) =>
+      !el.disabled && el.getClientRects().length && !(el.type === 'radio' && !el.checked));
+  }
+
+  async function openStep(i, { focus = true } = {}) {
+    if (i === state.open || state.moving || !reachable(i)) return;
+    state.moving = true;
+    try {
+      const prev = state.open;
+      const animate = !reduceMotion.matches;
+      if (animate) { bodies[prev].classList.add('is-leaving'); await wait(160); }
+      flip(() => {
+        bodies[prev].hidden = true;
+        bodies[prev].classList.remove('is-leaving');
+        heads[prev].setAttribute('aria-expanded', 'false');
+        delete panels[prev].dataset.open;
+        bodies[i].hidden = false;
+        if (animate) bodies[i].classList.add('is-entering');
+        heads[i].setAttribute('aria-expanded', 'true');
+        panels[i].dataset.open = '';
+        state.open = i;
+      });
+      if (animate) { bodies[i].offsetHeight; bodies[i].classList.remove('is-entering'); }
+      if (i === 5) renderReview();
+      renderSteps();
+      announce(`Step ${i + 1} of 6, ${STEPS[i]}`);
+      if (focus) {
+        firstFocusable(bodies[i])?.focus({ preventScroll: true });
+        panels[i].scrollIntoView({ block: 'nearest' });
+      }
+    } finally {
+      state.moving = false;
+    }
+  }
+
+  function complete(i) {
+    const firstEver = state.done.size === 0;
+    state.done.add(i);
+    if (i < 5 && state.draft) {
+      state.done.delete(5);
+      status('#review-status', 'Inputs changed. Regenerate to update the draft.');
+    }
+    renderSteps();
+    renderSummary();
+    if (firstEver) setDrawer(true);
+    if (i < 5) openStep(firstIncomplete());
+  }
+
+  // ---------- Validation ----------
+
+  function showErrors(form, errors) {
+    flip(() => {
+      $$('.err', form).forEach((p) => { p.textContent = ''; });
+      $$('[aria-invalid]', form).forEach((el) => el.removeAttribute('aria-invalid'));
+      for (const [el, msg] of errors) {
+        el.setAttribute('aria-invalid', 'true');
+        const errId = (el.getAttribute('aria-describedby') || '').split(' ')[0];
+        const slot = errId && document.getElementById(errId);
+        if (slot) slot.textContent = msg;
+      }
+    });
+    if (errors.length) errors[0][0].focus();
+    return errors.length === 0;
+  }
+
+  function isHttpUrl(v) {
+    try { return /^https?:$/.test(new URL(v).protocol); } catch { return false; }
+  }
+
+  function readFile(file, asText) {
+    return new Promise((resolve, reject) => {
+      const r = new FileReader();
+      r.onload = () => resolve(asText ? r.result : String(r.result).split(',')[1]);
+      r.onerror = () => reject(r.error);
+      asText ? r.readAsText(file) : r.readAsDataURL(file);
+    });
+  }
+
+  const commits = [
+    async (f) => {
+      state.data.activity = f.elements.activity.value;
+      if (state.data.activity === 'comment' && !state.data.post_text) state.done.delete(1);
+      return true;
+    },
+    async (f) => {
+      const topic = f.elements.topic, post = f.elements.post_text;
+      const errors = [];
+      if (!topic.value.trim()) errors.push([topic, 'Say what the post is about.']);
+      if (state.data.activity === 'comment' && !post.value.trim()) errors.push([post, 'Paste the post you are replying to.']);
+      if (!showErrors(f, errors)) return false;
+      state.data.topic = topic.value.trim();
+      state.data.post_text = state.data.activity === 'comment' ? post.value.trim() : '';
+      return true;
+    },
+    async (f) => {
+      const when = f.elements.when;
+      if (!showErrors(f, when.value.trim() ? [] : [[when, 'Give a date or period, even a rough one.']])) return false;
+      state.data.when = when.value.trim();
+      return true;
+    },
+    async (f) => {
+      const type = f.elements.source.value;
+      if (type === 'url') {
+        const url = f.elements.url;
+        if (!showErrors(f, isHttpUrl(url.value.trim()) ? [] : [[url, 'Enter a full address starting with http:// or https://']])) return false;
+        state.data.source = { type: 'url', url: new URL(url.value.trim()).href };
+        return true;
+      }
+      if (type === 'file' || type === 'image') {
+        const input = f.elements[type];
+        const file = input.files[0];
+        const ext = file ? file.name.split('.').pop().toLowerCase() : '';
+        let msg = '';
+        if (!file) msg = 'Choose a file, or pick Skip.';
+        else if (file.size > MAX_FILE) msg = `${file.name} is ${(file.size / 1048576).toFixed(1)} MB. The limit is 4 MB.`;
+        else if (type === 'file' && !['txt', 'md', 'pdf'].includes(ext)) msg = 'Use a .txt, .md or .pdf file.';
+        else if (type === 'image' && !IMAGE_TYPES.includes(file.type)) msg = 'Use a PNG, JPEG, GIF or WebP image.';
+        if (!showErrors(f, msg ? [[input, msg]] : [])) return false;
+        try {
+          if (type === 'image') state.data.source = { type, name: file.name, media_type: file.type, data: await readFile(file, false) };
+          else if (ext === 'pdf') state.data.source = { type, name: file.name, media_type: 'application/pdf', data: await readFile(file, false) };
+          else state.data.source = { type, name: file.name, media_type: ext === 'md' ? 'text/markdown' : 'text/plain', text: await readFile(file, true) };
+        } catch {
+          return showErrors(f, [[input, `Could not read ${file.name}. Try another file.`]]);
+        }
+        return true;
+      }
+      showErrors(f, []);
+      state.data.source = { type: 'skip' };
+      return true;
+    },
+    async (f) => {
+      const errors = [], people = [];
+      for (const row of $$('.person', f)) {
+        const [name, url, bio, reason] = ['name', 'url', 'bio', 'reason'].map((k) => $(`[data-k="${k}"]:not(label)`, row));
+        const n = name.value.trim(), u = url.value.trim(), b = bio.value.trim(), r = reason.value.trim();
+        if (!n && !u && !b && !r) continue;
+        if (!n) errors.push([name, 'Add a name, or remove this person.']);
+        if (u && !isHttpUrl(u)) errors.push([url, 'Enter a full URL starting with https://']);
+        if (n && !r) errors.push([reason, 'Say why you are tagging them (mentor, teammate, organiser…).']);
+        people.push({ name: n, url: u || null, bio: b || null, reason: r || null });
+      }
+      if (!showErrors(f, errors)) return false;
+      state.data.people = people;
+      return true;
+    },
+  ];
+
+  forms.slice(0, 5).forEach((f, i) => f.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    if (state.moving) return;
+    if (await commits[i](f)) complete(i);
+  }));
+
+  // Conditional fields
+  forms[0].addEventListener('change', () => {
+    const comment = forms[0].elements.activity.value === 'comment';
+    flip(() => { $('#comment-wrap').hidden = !comment; });
+  });
+  forms[3].addEventListener('change', (e) => {
+    if (e.target.name !== 'source') return;
+    flip(() => { $$('[data-src]', forms[3]).forEach((el) => { el.hidden = el.dataset.src !== e.target.value; }); });
+  });
+
+  // People rows
+  let personSeq = 0;
+  function renumberPeople() { $$('.person [data-n]').forEach((n, i) => { n.textContent = pad(i + 1); }); }
+
+  function addPerson() {
+    const id = ++personSeq;
+    const row = $('#tpl-person').content.firstElementChild.cloneNode(true);
+    for (const k of ['name', 'url', 'bio', 'reason']) {
+      const input = $(`[data-k="${k}"]:not(label)`, row);
+      input.id = `p${id}-${k}`;
+      $(`label[data-k="${k}"]`, row).htmlFor = input.id;
+      const err = $(`[data-e="${k}"]`, row);
+      if (err) { err.id = `p${id}-${k}-err`; input.setAttribute('aria-describedby', err.id); }
+    }
+    if (!reduceMotion.matches) row.classList.add('row-enter');
+    flip(() => peopleList.append(row));
+    renumberPeople();
+    $('input', row).focus({ preventScroll: true });
+    row.scrollIntoView({ block: 'nearest' });
+  }
+
+  async function removePerson(row) {
+    if (!reduceMotion.matches) { row.classList.add('row-leave'); await wait(160); }
+    flip(() => row.remove());
+    renumberPeople();
+    renderSummary();
+    $('#add-person').focus();
+  }
+
+  $('#add-person').addEventListener('click', addPerson);
+  peopleList.addEventListener('click', (e) => {
+    const btn = e.target.closest('.remove');
+    if (btn) removePerson(btn.closest('.person'));
+  });
+
+  // ---------- Live summary (drawer) ----------
+
+  let summaryPrimed = false;
+  function liveSource() {
+    const f = forms[3], type = f.elements.source.value;
+    if (type === 'url') return f.elements.url.value.trim() ? sourceLabel({ type, url: f.elements.url.value.trim() }) : 'URL · —';
+    if (type === 'file' || type === 'image') return f.elements[type].files[0] ? `${type} · ${f.elements[type].files[0].name}` : `${type} · —`;
+    return 'Skipped';
+  }
+
+  function renderSummary() {
+    const names = $$('.person [data-k="name"]:not(label)').map((i) => i.value.trim()).filter(Boolean);
+    const values = {
+      's-activity': forms[0].elements.activity.value,
+      's-topic': forms[1].elements.topic.value.trim() || '—',
+      's-when': forms[2].elements.when.value.trim() || '—',
+      's-source': liveSource(),
+      's-people': names.length ? names.join(', ') : 'None',
+      's-draft': state.draft ? state.draft.replace(/\s+/g, ' ') : 'Not generated · step 06',
+    };
+    for (const [id, v] of Object.entries(values)) {
+      const dd = document.getElementById(id);
+      if (dd.textContent === v) continue;
+      dd.textContent = v;
+      if (summaryPrimed && !reduceMotion.matches) flash(dd);
+    }
+    summaryPrimed = true;
+  }
+  $('#panels').addEventListener('input', renderSummary);
+  $('#panels').addEventListener('change', renderSummary);
+
+  function setDrawer(open) {
+    drawer.dataset.open = String(open);
+    drawerToggle.setAttribute('aria-expanded', String(open));
+    drawerBody.inert = !open;
+    if (!open && drawerBody.contains(document.activeElement)) drawerToggle.focus();
+  }
+  drawerToggle.addEventListener('click', () => setDrawer(drawer.dataset.open !== 'true'));
+  document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && drawer.dataset.open === 'true') setDrawer(false); });
+  new ResizeObserver(() => document.documentElement.style.setProperty('--drawer-h', `${drawer.offsetHeight}px`)).observe(drawer);
+
+  // ---------- Review, generate, revise, save ----------
+
+  function status(sel, msg, error = false) {
+    const el = $(sel);
+    el.textContent = msg;
+    if (error) el.dataset.tone = 'error'; else delete el.dataset.tone;
+  }
+
+  const targetLabel = () => ({ mock: 'the in-browser mock (nothing leaves this page)', local: 'your local backend', cloud: 'your AWS backend' })[state.target];
+
+  function renderReview() {
+    const d = state.data;
+    const rows = [['Activity', d.activity], ['Topic', d.topic]];
+    if (d.activity === 'comment') rows.push(['Replying to', d.post_text]);
+    rows.push(['When', d.when], ['Source', sourceLabel(d.source)],
+      ['People', d.people.length ? d.people.map((p) => p.reason ? `${p.name} (${p.reason})` : p.name).join(', ') : 'None'],
+      ['Persona', state.persona ? `${state.persona.answers.name} · ${state.persona.stats?.posts || 0} posts learned` : 'Not set up · drafts use a neutral voice']);
+    const dl = $('#review-dl');
+    dl.replaceChildren(...rows.flatMap(([k, v]) => {
+      const dt = document.createElement('dt'); dt.className = 'text-[10px] tracking-[0.2em] uppercase text-ink/45 pt-0.5'; dt.textContent = k;
+      const dd = document.createElement('dd'); dd.className = 'break-words line-clamp-3'; dd.textContent = v || '—';
+      return [dt, dd];
+    }));
+    $('#sent-to').textContent = targetLabel();
+  }
+
+  function payload() {
+    const d = state.data;
+    return {
+      activity: d.activity, topic: d.topic, when: d.when, source: d.source, people: d.people,
+      ...(d.activity === 'comment' ? { post_text: d.post_text } : {}),
+      ...engineFields(),
+      ...personaFields(),
+    };
+  }
+
+  function setBusy(busy) {
+    state.busy = busy;
+    genBtn.disabled = busy;
+    $('#revise-btn').disabled = busy;
+    genBtn.setAttribute('aria-busy', String(busy));
+    saveBtn.disabled = !state.draft || busy;
+  }
+
+  function showDraft(res) {
+    state.draft = res.draft;
+    state.history = res.history || [];
+    const firstDraft = draftOut.hidden;
+    flip(() => {
+      draftOut.textContent = res.draft;
+      draftOut.hidden = false;
+      reviseForm.hidden = false;
+      if (firstDraft && !reduceMotion.matches) { draftOut.classList.add('row-enter'); reviseForm.classList.add('row-enter'); }
+    });
+    setCta(genBtn, 'Regenerate');
+    renderSummary();
+  }
+
+  forms[5].addEventListener('submit', async (e) => {
+    e.preventDefault();
+    if (state.busy) return;
+    if (firstIncomplete() < 5) { openStep(firstIncomplete()); return; }
+    setBusy(true);
+    status('#review-status', `Generating with ${targetLabel()}…`);
+    try {
+      const res = await api.generate(payload());
+      showDraft(res);
+      status('#review-status', (res.notes || []).join(' '));
+      complete(5);
+      draftOut.focus({ preventScroll: true });
+      announce('Draft ready');
+    } catch (err) {
+      status('#review-status', err.message, true);
+    } finally {
+      setBusy(false);
+    }
+  });
+
+  reviseForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    if (state.busy) return;
+    const fb = reviseForm.elements.feedback;
+    if (!showErrors(reviseForm, fb.value.trim() ? [] : [[fb, 'Say what to change.']])) return;
+    setBusy(true);
+    status('#review-status', 'Revising…');
+    try {
+      const res = await api.revise({ history: state.history, feedback: fb.value.trim(), ...engineFields() });
+      showDraft(res);
+      fb.value = '';
+      status('#review-status', (res.notes || []).join(' '));
+      announce('Draft revised');
+    } catch (err) {
+      status('#review-status', err.message, true);
+    } finally {
+      setBusy(false);
+    }
+  });
+
+  saveBtn.addEventListener('click', async () => {
+    if (!state.draft || state.busy) return;
+    setBusy(true);
+    status('#save-status', 'Saving…');
+    try {
+      const res = await api.save({ topic: state.data.topic, when: state.data.when, draft: state.draft });
+      status('#save-status', `Saved · ${res.id || res.path || 'ok'}${state.target === 'mock' ? ' · stub' : ''}`);
+      newPostBtn.hidden = false;
+    } catch (err) {
+      status('#save-status', err.message, true);
+    } finally {
+      setBusy(false);
+    }
+  });
+
+  newPostBtn.addEventListener('click', async () => {
+    forms.forEach((f) => f.reset());
+    reviseForm.reset();
+    peopleList.replaceChildren();
+    $('#comment-wrap').hidden = true;
+    $$('[data-src]', forms[3]).forEach((el) => { el.hidden = el.dataset.src !== 'skip'; });
+    $$('.err').forEach((p) => { p.textContent = ''; });
+    Object.assign(state, { data: blankData(), draft: '', history: [] });
+    state.done.clear();
+    draftOut.hidden = true;
+    draftOut.textContent = '';
+    reviseForm.hidden = true;
+    setCta(genBtn, 'Generate draft');
+    status('#review-status', '');
+    status('#save-status', '');
+    newPostBtn.hidden = true;
+    setDrawer(false);
+    renderSummary();
+    await openStep(0);
+    renderSteps();
+  });
+
+  // Panel heads and tracker squares jump to a reachable step.
+  heads.forEach((h, i) => h.addEventListener('click', () => openStep(i)));
+  trackerItems.forEach((li, i) => $('button', li).addEventListener('click', () => openStep(i)));
+
+  // ---------- Backend adapter: mock | local | cloud ----------
+
+  const mockStore = [];
+  async function mock(method, path, body) {
+    await wait(path === '/health' ? 120 : 650);
+    switch (`${method} ${path}`) {
+      case 'GET /health': return { target: 'mock', ok: true, providers: { mock: { label: 'Mock', models: ['stub'], default: 'stub', ready: true } } };
+      case 'POST /drafts': {
+        const draft = mockDraft(body);
+        return { draft, history: [{ role: 'user', content: JSON.stringify(body) }, { role: 'assistant', content: draft }] };
+      }
+      case 'POST /drafts/revise': {
+        const draft = `${body.history.at(-1).content}\n\n[Revision requested: ${body.feedback}]`;
+        return { draft, history: [...body.history, { role: 'user', content: body.feedback }, { role: 'assistant', content: draft }] };
+      }
+      case 'POST /posts': {
+        const item = { id: `mock-${Date.now()}`, ...body, created_at: new Date().toISOString() };
+        mockStore.push(item);
+        return { id: item.id };
+      }
+      case 'GET /posts': return mockStore;
+      default: throw new Error(`Mock has no route ${method} ${path}`);
+    }
+  }
+
+  // Uses only the user's own facts; the real draft comes from the backend.
+  function mockDraft(p) {
+    const names = p.people.map((x) => x.name);
+    const thanks = names.length > 1 ? `${names.slice(0, -1).join(', ')} and ${names.at(-1)}` : names[0];
+    return [
+      'MOCK DRAFT · no model call. Switch TARGET to LOCAL or CLOUD for a real draft.',
+      '',
+      p.activity === 'comment' ? `Replying to: "${p.post_text.slice(0, 120)}"` : null,
+      `${p.topic} (${p.when}).`,
+      p.source.type !== 'skip' ? `Event material: ${sourceLabel(p.source)}.` : null,
+      thanks ? `Thank you to ${thanks}.` : null,
+    ].filter((l) => l !== null).join('\n');
+  }
+
+  const api = {
+    base() { return (state.target === 'local' ? CFG.local?.baseUrl : CFG.cloud?.baseUrl) || ''; },
+    async call(method, path, body) {
+      if (state.target === 'mock') return mock(method, path, body);
+      const base = this.base();
+      if (!base) throw new Error(`${state.target.toUpperCase()} is not configured in config.js`);
+      const headers = {};
+      if (body) headers['Content-Type'] = 'application/json';
+      if (state.target === 'cloud' && path !== '/health') {
+        const token = auth.token();
+        if (!token) throw new Error('Sign in to use CLOUD.');
+        headers.Authorization = token;
+      }
+      let res;
+      try {
+        res = await fetch(base.replace(/\/$/, '') + path, {
+          method, headers, body: body ? JSON.stringify(body) : undefined,
+          // LOCAL has no gateway limit, and a current model can take minutes on a long draft.
+          signal: AbortSignal.timeout(path === '/health' ? 4000 : state.target === 'local' ? 180000 : 35000),
+        });
+      } catch (err) {
+        throw new Error(err.name === 'TimeoutError' ? 'The backend took too long to answer.' : `Cannot reach the ${state.target} backend.`);
+      }
+      const text = await res.text();
+      let json;
+      try { json = text ? JSON.parse(text) : {}; } catch { json = { message: text }; }
+      if (!res.ok) throw new Error(json.error || json.message || `HTTP ${res.status}`);
+      return json;
+    },
+    health() { return this.call('GET', '/health'); },
+    generate(p) { return this.call('POST', '/drafts', p); },
+    revise(p) { return this.call('POST', '/drafts/revise', p); },
+    save(p) { return this.call('POST', '/posts', p); },
+    list() { return this.call('GET', '/posts'); },
+  };
+
+  // ---------- Cognito Hosted UI (authorization code + PKCE) ----------
+
+  const b64url = (bytes) => btoa(String.fromCharCode(...bytes)).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+  const auth = {
+    cfg() { return CFG.cloud?.cognito || {}; },
+    configured() { const c = this.cfg(); return Boolean(c.domain && c.clientId && c.redirectUri); },
+    domain() { return this.cfg().domain.replace(/\/$/, ''); },
+    token() {
+      const t = sessionStorage.getItem('indo.idToken');
+      if (!t) return null;
+      try {
+        const claims = JSON.parse(atob(t.split('.')[1].replace(/-/g, '+').replace(/_/g, '/')));
+        if (claims.exp * 1000 > Date.now() + 30000) return t;
+      } catch { /* fall through */ }
+      sessionStorage.removeItem('indo.idToken');
+      return null;
+    },
+    async signIn() {
+      const c = this.cfg();
+      const verifier = b64url(crypto.getRandomValues(new Uint8Array(32)));
+      const challenge = b64url(new Uint8Array(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(verifier))));
+      const nonce = b64url(crypto.getRandomValues(new Uint8Array(16)));
+      sessionStorage.setItem('indo.pkce', JSON.stringify({ verifier, nonce }));
+      const q = new URLSearchParams({
+        response_type: 'code', client_id: c.clientId, redirect_uri: c.redirectUri, scope: 'openid email',
+        state: nonce, code_challenge: challenge, code_challenge_method: 'S256',
+      });
+      location.assign(`${this.domain()}/oauth2/authorize?${q}`);
+    },
+    async handleRedirect() {
+      const url = new URL(location.href);
+      const code = url.searchParams.get('code');
+      if (!code || !this.configured()) return;
+      const saved = JSON.parse(sessionStorage.getItem('indo.pkce') || 'null');
+      sessionStorage.removeItem('indo.pkce');
+      history.replaceState(null, '', url.pathname);
+      if (!saved || saved.nonce !== url.searchParams.get('state')) throw new Error('Sign-in failed: state mismatch.');
+      const c = this.cfg();
+      const res = await fetch(`${this.domain()}/oauth2/token`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: new URLSearchParams({ grant_type: 'authorization_code', client_id: c.clientId, code, redirect_uri: c.redirectUri, code_verifier: saved.verifier }),
+      });
+      if (!res.ok) throw new Error('Sign-in failed: token exchange was rejected.');
+      sessionStorage.setItem('indo.idToken', (await res.json()).id_token);
+    },
+    signOut() {
+      sessionStorage.removeItem('indo.idToken');
+      const c = this.cfg();
+      location.assign(`${this.domain()}/logout?${new URLSearchParams({ client_id: c.clientId, logout_uri: c.redirectUri })}`);
+    },
+  };
+
+  function renderAuth() {
+    const btn = $('#auth-btn');
+    const cloud = state.target === 'cloud';
+    btn.hidden = !cloud || !auth.configured();
+    btn.textContent = auth.token() ? 'Sign out' : 'Sign in';
+    const needsSignIn = cloud && auth.configured() && !auth.token();
+    status('#cloud-note', needsSignIn ? 'Cloud · sign in before generating or saving.' : '', needsSignIn);
+    $('#cloud-note').hidden = !needsSignIn;
+  }
+  $('#auth-btn').addEventListener('click', () => (auth.token() ? auth.signOut() : auth.signIn()));
+
+  // ---------- Target switch + health ----------
+
+  // ---------- Engine switch: local model, or an LLM provider + model ----------
+
+  const ENGINES = ['local', 'llm'];
+  const savedEngine = localStorage.getItem('indo.engine');
+  state.engine = ENGINES.includes(savedEngine) ? savedEngine : 'local';
+  state.providers = {};
+  const providerSel = $('#llm-provider');
+  const modelSel = $('#llm-model-sel');
+  const modelIn = $('#llm-model');
+  const CUSTOM = '__custom';
+
+  function currentModel() { return modelSel.value === CUSTOM ? modelIn.value.trim() : modelSel.value; }
+
+  function engineFields() {
+    if (state.engine === 'local') return { engine: 'local' };
+    return { engine: 'llm', provider: providerSel.value || undefined, model: currentModel() || undefined };
+  }
+
+  // Fill a model <select> for a provider; the last pick per provider is remembered.
+  function modelOptions(sel, input, p, saved) {
+    const models = p ? p.models : [];
+    sel.replaceChildren(...models.map((m) => new Option(p && m === p.default ? `${m} · default` : m, m)),
+      ...(input ? [new Option('Custom model ID…', CUSTOM)] : []));
+    if (saved && models.includes(saved)) sel.value = saved;
+    else if (saved && input) { sel.value = CUSTOM; input.value = saved; }
+    else if (p && models.includes(p.default)) sel.value = p.default;
+    if (input) input.hidden = sel.value !== CUSTOM;
+  }
+
+  function fillModels() {
+    const id = providerSel.value;
+    modelOptions(modelSel, modelIn, state.providers[id], localStorage.getItem(`indo.model.${id}`));
+    localStorage.setItem('indo.provider', id);
+  }
+
+  function providerOption(id, p) {
+    return new Option(p.ready ? p.label : `${p.label} · not set up`, id);
+  }
+
+  function renderProviders(providers) {
+    state.providers = providers || {};
+    const keep = providerSel.value || localStorage.getItem('indo.provider');
+    providerSel.replaceChildren(...Object.entries(state.providers).map(([id, p]) => providerOption(id, p)));
+    if (keep && state.providers[keep]) providerSel.value = keep;
+    fillModels();
+  }
+
+  function rememberModel() {
+    localStorage.setItem(`indo.model.${providerSel.value}`, currentModel());
+    modelIn.hidden = modelSel.value !== CUSTOM;
+    renderEngineLabel();
+  }
+
+  function setEngine(e) {
+    state.engine = e;
+    localStorage.setItem('indo.engine', e);
+    $$('[data-engine]').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.engine === e)));
+    $('#llm-opts').hidden = e !== 'llm';
+    renderEngineLabel();
+  }
+
+  function renderEngineLabel() {
+    const f = engineFields();
+    $('#engine-label').textContent = f.engine === 'local' ? 'Local ML (offline)'
+      : `${f.model || 'default model'} · ${f.provider || 'anthropic'}`;
+    const p = state.providers[providerSel.value];
+    const warn = f.engine === 'llm' && p && !p.ready;
+    status('#engine-note', warn ? `${p.label} is not set up yet. Open Settings to add its key or AWS credentials.` : '', warn);
+    $('#engine-note').hidden = !warn;
+  }
+  $$('[data-engine]').forEach((b) => b.addEventListener('click', () => setEngine(b.dataset.engine)));
+  providerSel.addEventListener('change', () => { modelIn.value = ''; fillModels(); renderEngineLabel(); });
+  modelSel.addEventListener('change', () => { rememberModel(); if (modelSel.value === CUSTOM) modelIn.focus(); });
+  modelIn.addEventListener('input', rememberModel);
+  setEngine(state.engine);
+
+  // ---------- Persona: who you are and how you write (kept on this machine) ----------
+
+  const dlg = $('#persona-dlg');
+  state.persona = null;
+  state.inspirations = [];
+  let personaLoaded = false;
+
+  // The persona lives on the local backend whatever the target, so CLOUD drafts can carry it.
+  async function pcall(method, path, body, timeout = 120000) {
+    const base = (CFG.local?.baseUrl || '').replace(/\/$/, '');
+    let res;
+    try {
+      res = await fetch(base + path, {
+        method, headers: body ? { 'Content-Type': 'application/json' } : {},
+        body: body ? JSON.stringify(body) : undefined, signal: AbortSignal.timeout(timeout),
+      });
+    } catch (err) {
+      if (err.name === 'TimeoutError') throw new Error('The local backend took too long to answer.');
+      throw new Error('This needs the local backend. Start the desktop app (or local_server.py).');
+    }
+    const json = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(json.error || `HTTP ${res.status}`);
+    return json;
+  }
+
+  function chip(name, value, type, label) {
+    const l = document.createElement('label');
+    l.className = 'chip bx';
+    l.append(Object.assign(document.createElement('input'), { type, name, value }), document.createTextNode(label || value));
+    return l;
+  }
+
+  let choicesDone = false;
+  function renderChoices(c) {
+    if (choicesDone || !c) return;
+    choicesDone = true;
+    $('#pa-tone').replaceChildren(...c.tone.map((t) => chip('tone', t, 'checkbox')));
+    for (const k of ['emoji', 'length']) {
+      $(`#pa-${k}`).replaceChildren(chip(k, '', 'radio', 'learn from my posts'), ...c[k].map((t) => chip(k, t, 'radio')));
+    }
+  }
+
+  function fillForm(a) {
+    const f = $('#persona-form');
+    a = a || {};
+    for (const k of ['name', 'linkedin_url', 'headline', 'about', 'audience', 'goals', 'signature']) f.elements[k].value = a[k] || '';
+    f.elements.avoid.value = (a.avoid || []).join(', ');
+    $('#ps-url').value = a.linkedin_url || '';
+    f.elements.hashtags.value = (a.hashtags || []).map((t) => `#${t}`).join(', ');
+    $$('input[name="tone"]', f).forEach((i) => { i.checked = (a.tone || []).includes(i.value); });
+    for (const k of ['emoji', 'length']) $$(`input[name="${k}"]`, f).forEach((i) => { i.checked = (a[k] || '') === i.value; });
+  }
+
+  function renderInspirations() {
+    const list = $('#persona-insp-list');
+    list.replaceChildren(...state.inspirations.map((item) => {
+      const li = document.createElement('li');
+      li.className = 'border border-line p-3 text-[12px] space-y-2';
+      const head = document.createElement('p');
+      head.className = 'lbl !mb-0';
+      head.textContent = item.author ? `From ${item.author}` : 'Saved post';
+      const desc = document.createElement('p');
+      desc.className = 'text-ink/70';
+      desc.textContent = `Format: ${item.description.join(' · ')}`;
+      const del = Object.assign(document.createElement('button'), { type: 'button', className: 'btn-ghost bx', textContent: 'Delete' });
+      del.addEventListener('click', async () => {
+        try { state.inspirations = await pcall('POST', '/inspirations/delete', { id: item.id }); renderInspirations(); }
+        catch (err) { status('#persona-import-status', err.message, true); }
+      });
+      li.append(head, desc, del);
+      return li;
+    }));
+    const sel = $('#i-inspiration');
+    const keep = sel.value;
+    sel.replaceChildren(new Option('None, use my usual format', ''), ...state.inspirations.map((i) =>
+      new Option(`${i.author || 'Saved post'}: ${i.description.slice(0, 2).join(', ')}`, i.id)));
+    if (state.inspirations.some((i) => i.id === keep)) sel.value = keep;
+  }
+
+  function renderPersona(view) {
+    state.persona = view.persona;
+    state.inspirations = view.inspirations || [];
+    renderChoices(view.choices);
+    const p = view.persona;
+    $('#persona-state').textContent = p ? `${p.answers.name} · ${view.post_count} posts` : 'Not set up yet';
+    $('#persona-btn').textContent = p ? `Persona · ${p.answers.name.split(' ')[0]}` : 'Set up persona';
+    const sum = $('#persona-summary');
+    sum.hidden = !p;
+    if (p) {
+      const title = Object.assign(document.createElement('p'), { className: 'lbl !mb-1', textContent: `What the app learned · ${new Date(p.trained_at).toLocaleString()}` });
+      sum.replaceChildren(title, ...p.summary.map((t) => Object.assign(document.createElement('p'), { textContent: t })));
+    }
+    renderInspirations();
+    renderReview();
+  }
+
+  async function loadPersona({ openIfNew = false } = {}) {
+    try {
+      const view = await pcall('GET', '/persona');
+      renderPersona(view);
+      if (!personaLoaded) fillForm(view.profile && Object.keys(view.profile).length ? view.profile : view.persona?.answers);
+      personaLoaded = true;
+      // First run: ask who you are and how you write before the first draft.
+      if (openIfNew && !view.persona && !localStorage.getItem('indo.persona.later')) openPersona();
+    } catch {
+      $('#persona-btn').textContent = 'Persona';
+    }
+  }
+
+  function openPersona() {
+    if (!dlg.open) dlg.showModal();
+    $('#pa-name').focus();
+  }
+  $('#persona-btn').addEventListener('click', () => { loadPersona(); openPersona(); });
+  $('#persona-close').addEventListener('click', () => {
+    if (!state.persona) localStorage.setItem('indo.persona.later', '1');
+    dlg.close();
+  });
+
+  $('#persona-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const f = e.currentTarget;
+    const name = f.elements.name, url = f.elements.linkedin_url;
+    const errors = [];
+    if (!name.value.trim()) errors.push([name, 'Your name is needed so drafts are written as you.']);
+    if (url.value.trim() && !isHttpUrl(url.value.trim())) errors.push([url, 'Enter a full URL starting with https://']);
+    if (!showErrors(f, errors)) return;
+    const tone = $$('input[name="tone"]:checked', f).map((i) => i.value);
+    if (tone.length > 4) { status('#persona-form-status', 'Pick at most 4 tones.', true); return; }
+    const answers = {
+      name: name.value.trim(), linkedin_url: url.value.trim() || null, tone,
+      emoji: $('input[name="emoji"]:checked', f)?.value || null, length: $('input[name="length"]:checked', f)?.value || null,
+      avoid: f.elements.avoid.value, hashtags: f.elements.hashtags.value,
+    };
+    for (const k of ['headline', 'about', 'audience', 'goals', 'signature']) answers[k] = f.elements[k].value.trim() || null;
+    status('#persona-form-status', 'Training…');
+    try {
+      renderPersona(await pcall('POST', '/persona', answers));
+      status('#persona-form-status', 'Saved. Your persona is trained.');
+      announce('Persona trained');
+    } catch (err) { status('#persona-form-status', err.message, true); }
+  });
+
+  const fileToBase64 = (file) => new Promise((resolve, reject) => {
+    const r = new FileReader();
+    r.onload = () => resolve(String(r.result).split(',', 2)[1] || '');
+    r.onerror = () => reject(new Error('Could not read that file.'));
+    r.readAsDataURL(file);
+  });
+
+  $('#persona-import').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const file = $('#pi-zip').files[0];
+    const text = $('#pi-text').value.trim();
+    if (!file && !text) { status('#persona-import-status', 'Choose your LinkedIn export ZIP or paste some posts.', true); return; }
+    status('#persona-import-status', file ? `Reading ${file.name}…` : 'Reading your posts…');
+    try {
+      const body = file ? { zip: await fileToBase64(file) } : { text };
+      const view = await pcall('POST', '/persona/import', body);
+      renderPersona(view);
+      if (!personaLoaded || !$('#pa-name').value) fillForm(view.profile);
+      status('#persona-import-status', (view.notes || []).join(' '));
+      $('#pi-zip').value = ''; $('#pi-text').value = '';
+    } catch (err) { status('#persona-import-status', err.message, true); }
+  });
+
+  $('#persona-insp').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const f = e.currentTarget, text = $('#pn-text');
+    if (!showErrors(f, text.value.trim().split(/\s+/).length < 15 ? [[text, 'Paste the whole post (at least 15 words).']] : [])) return;
+    try {
+      await pcall('POST', '/inspirations', { text: text.value.trim(), author: $('#pn-author').value.trim() || null, credit: $('#pn-credit').checked });
+      text.value = ''; $('#pn-author').value = ''; $('#pn-credit').checked = false;
+      await loadPersona();
+      announce('Inspiration saved');
+    } catch (err) { showErrors(f, [[text, err.message]]); }
+  });
+
+  $('#i-inspiration').addEventListener('change', (e) => {
+    const item = state.inspirations.find((i) => i.id === e.target.value);
+    $('#i-credit').checked = Boolean(item?.credit);
+  });
+
+  function personaFields() {
+    const out = {};
+    const item = state.inspirations.find((i) => i.id === $('#i-inspiration').value);
+    if (item) out.inspiration = { text: item.text, author: item.author, credit: $('#i-credit').checked };
+    // The CLOUD backend has no persona files: send the trained summary (not your post archive).
+    if (state.target === 'cloud' && state.persona) {
+      const { answers, voice, summary, showcase } = state.persona;
+      out.persona = { answers, voice, summary, showcase };
+    }
+    return out;
+  }
+
+  // ---------- Scan your public LinkedIn profile ----------
+
+  $('#persona-scan').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const f = e.currentTarget, input = $('#ps-url');
+    const url = input.value.trim() || $('#pa-url').value.trim();
+    if (!showErrors(f, url ? [] : [[input, 'Paste your LinkedIn profile URL, like https://www.linkedin.com/in/your-name']])) return;
+    const btn = $('#scan-btn');
+    btn.disabled = true;
+    status('#persona-scan-status', 'Reading your public LinkedIn profile…');
+    try {
+      const view = await pcall('POST', '/persona/scan', { url, overwrite: $('#ps-overwrite').checked });
+      renderPersona(view);
+      fillForm(view.profile);
+      personaLoaded = true;
+      status('#persona-scan-status', (view.notes || []).join(' '));
+      announce('Profile scanned');
+    } catch (err) { status('#persona-scan-status', err.message, true); }
+    finally { btn.disabled = false; }
+  });
+
+  // ---------- Settings: API keys, AWS credentials, agent workspace ----------
+
+  const sdlg = $('#settings-dlg');
+  // Providers as the local backend sees them (the header may be showing MOCK's).
+  let sProviders = {};
+  const KEY_LABELS = { anthropic: 'Anthropic (Claude)', openai: 'OpenAI', gemini: 'Google Gemini', groq: 'Groq', openrouter: 'OpenRouter' };
+
+  function renderSettings(v) {
+    $('#set-file').textContent = v.file;
+    $('#set-region').value = v.bedrock.region;
+    $('#set-profile').value = v.bedrock.profile;
+    for (const id of ['#set-akid', '#set-secret', '#set-token']) $(id).value = '';
+    $('#set-akid').placeholder = v.bedrock.keys_saved ? `saved ${v.bedrock.key_hint}` : 'AKIA…';
+    $('#set-secret').placeholder = v.bedrock.keys_saved ? 'saved' : '';
+    $('#set-token').placeholder = v.bedrock.session_token ? 'saved' : '';
+    $('#set-aws-state').textContent = v.bedrock.keys_saved ? `Using saved access keys${v.bedrock.session_token ? ' (temporary)' : ''}.`
+      : v.bedrock.profile ? `Using AWS profile "${v.bedrock.profile}".` : 'Using the default AWS credentials on this machine.';
+    $('#set-import').hidden = !v.claude_code_settings;
+    $('#set-workspace').value = v.workspace;
+    $('#set-keys').replaceChildren(...Object.entries(v.keys).map(([id, k]) => {
+      const wrap = document.createElement('div');
+      const label = Object.assign(document.createElement('label'), { className: 'lbl', htmlFor: `set-key-${id}`,
+        textContent: `${KEY_LABELS[id] || id}${k.set ? ` · ${k.source === 'environment' ? 'from environment' : 'saved'} ${k.hint}` : ''}` });
+      const field = Object.assign(document.createElement('span'), { className: 'field bx flex' });
+      const input = Object.assign(document.createElement('input'), { id: `set-key-${id}`, type: 'password', autocomplete: 'off', placeholder: k.set ? 'keep current key' : 'paste key' });
+      input.dataset.key = id;
+      field.append(input);
+      if (k.source === 'settings') {
+        const del = Object.assign(document.createElement('button'), { type: 'button', className: 'px-3 text-[10px] uppercase tracking-[0.18em] text-ink/60', textContent: 'Forget' });
+        del.addEventListener('click', () => saveSettings({ keys: { [id]: '' } }, `${KEY_LABELS[id]} key removed.`));
+        field.append(del);
+      }
+      wrap.append(label, field);
+      return wrap;
+    }));
+    const sel = $('#set-test-provider'), keep = sel.value || providerSel.value;
+    sel.replaceChildren(...Object.entries(sProviders).map(([id, p]) => providerOption(id, p)));
+    if (keep && sProviders[keep]) sel.value = keep;
+  }
+
+  async function refreshProviders() {
+    try { const h = await pcall('GET', '/health', undefined, 8000); if (state.target === 'local') renderProviders(h.providers); return h.providers; }
+    catch { return null; }
+  }
+
+  async function saveSettings(body, done) {
+    status('#settings-status', 'Saving…');
+    try {
+      await pcall('POST', '/settings', body);
+      sProviders = (await refreshProviders()) || sProviders;
+      renderSettings(await pcall('GET', '/settings'));
+      renderEngineLabel();
+      status('#settings-status', done || 'Saved.');
+    } catch (err) { status('#settings-status', err.message, true); }
+  }
+
+  $('#settings-btn').addEventListener('click', async () => {
+    if (!sdlg.open) sdlg.showModal();
+    status('#settings-status', '');
+    try {
+      sProviders = (await refreshProviders()) || sProviders;
+      renderSettings(await pcall('GET', '/settings'));
+    } catch (err) { status('#settings-status', err.message, true); }
+  });
+  $('#settings-close').addEventListener('click', () => sdlg.close());
+
+  $('#settings-form').addEventListener('submit', (e) => {
+    e.preventDefault();
+    const keys = {};
+    $$('#set-keys input[data-key]').forEach((i) => { if (i.value.trim()) keys[i.dataset.key] = i.value.trim(); });
+    const bedrock = { region: $('#set-region').value.trim(), profile: $('#set-profile').value.trim() };
+    const akid = $('#set-akid').value.trim(), secret = $('#set-secret').value.trim(), token = $('#set-token').value.trim();
+    if (akid || secret) {
+      if (!(akid && secret)) { status('#settings-status', 'Enter both the access key ID and the secret access key.', true); return; }
+      Object.assign(bedrock, { access_key_id: akid, secret_access_key: secret, session_token: token });
+    } else if (token) bedrock.session_token = token;
+    saveSettings({ keys, bedrock, workspace: $('#set-workspace').value.trim() });
+  });
+
+  $('#set-clear-aws').addEventListener('click', () =>
+    saveSettings({ bedrock: { access_key_id: '', secret_access_key: '', session_token: '' } }, 'AWS keys removed.'));
+
+  $('#set-import').addEventListener('click', async () => {
+    status('#settings-status', 'Importing…');
+    try {
+      const v = await pcall('POST', '/settings/import-claude-code', {});
+      sProviders = (await refreshProviders()) || sProviders;
+      renderSettings(v);
+      renderEngineLabel();
+      status('#settings-status', (v.notes || []).join(' '));
+    } catch (err) { status('#settings-status', err.message, true); }
+  });
+
+  $('#set-test').addEventListener('click', async () => {
+    const provider = $('#set-test-provider').value;
+    const model = provider === providerSel.value ? currentModel() : undefined;
+    status('#settings-status', `Testing ${sProviders[provider]?.label || provider}…`);
+    try {
+      const r = await pcall('POST', '/settings/test', { provider, model }, 90000);
+      status('#settings-status', r.message, !r.ok);
+    } catch (err) { status('#settings-status', err.message, true); }
+  });
+
+  // ---------- Agent: chat with tools (web, LinkedIn, files, commands) ----------
+
+  const adlg = $('#agent-dlg');
+  const agent = { messages: [], running: false, stop: false, providers: {} };
+  try { agent.messages = JSON.parse(sessionStorage.getItem('indo.agent') || '[]'); } catch { agent.messages = []; }
+  const agentProv = $('#ag-provider'), agentModel = $('#ag-model');
+
+  function el(tag, cls, text) {
+    const n = document.createElement(tag);
+    if (cls) n.className = cls;
+    if (text != null) n.textContent = text;
+    return n;
+  }
+
+  function toolLine(name, input) {
+    const a = input || {};
+    if (name === 'run_command') return `$ ${a.command || ''}`;
+    if (name === 'write_file') return `${a.path || ''} · ${String(a.content || '').length.toLocaleString()} characters`;
+    return Object.values(a).map(String).join(' ').slice(0, 160);
+  }
+
+  function renderAgent(pending = []) {
+    const log = $('#ag-log');
+    const results = {};
+    for (const m of agent.messages) {
+      if (m.role === 'user' && Array.isArray(m.content)) for (const b of m.content) if (b.type === 'tool_result') results[b.tool_use_id] = b;
+    }
+    const nodes = [];
+    for (const m of agent.messages) {
+      const blocks = typeof m.content === 'string' ? [{ type: 'text', text: m.content }] : m.content;
+      for (const b of blocks) {
+        if (b.type === 'text' && b.text?.trim()) nodes.push(el('div', `msg ${m.role === 'user' ? 'msg-user' : 'msg-ai'}`, b.text.trim()));
+        else if (b.type === 'thinking' && b.thinking?.trim()) nodes.push(el('div', 'msg text-[11px] text-ink/50 italic', b.thinking.trim()));
+        else if (b.type === 'tool_use') {
+          const card = el('details', 'tool');
+          const sum = el('summary');
+          sum.append(el('span', 'tname', b.name.replace('_', ' ')), el('span', 'text-ink/70 truncate', toolLine(b.name, b.input)));
+          card.append(sum);
+          const r = results[b.id];
+          if (b.name === 'write_file' && b.input?.content) card.append(el('pre', '', b.input.content));
+          if (r) {
+            card.append(el('pre', '', typeof r.content === 'string' ? r.content : JSON.stringify(r.content)));
+            if (r.is_error) card.dataset.error = '';
+          } else if (pending.includes(b.id)) {
+            card.dataset.wait = '';
+            card.open = true;
+            const row = el('div', 'flex items-center gap-3 px-3 py-2 border-t border-line');
+            row.append(el('span', 'text-[11px] text-ink/70 mr-auto', b.name === 'run_command' ? 'Run this command on your computer?' : 'Write this file?'));
+            const yes = el('button', 'cta cta-sm', null);
+            yes.type = 'button';
+            yes.innerHTML = '<span class="cta-fill" aria-hidden="true"></span><span class="cta-label"><span class="cta-a"><span class="t">Allow</span></span><span class="cta-b" aria-hidden="true"><span class="t">Allow</span></span></span>';
+            const no = el('button', 'btn-ghost bx', 'Deny');
+            no.type = 'button';
+            yes.addEventListener('click', () => decide(b.id, true));
+            no.addEventListener('click', () => decide(b.id, false));
+            row.append(no, yes);
+            card.append(row);
+          } else {
+            sum.append(el('span', 'text-[10px] text-ink/40 ml-auto', agent.running ? 'running…' : 'not run'));
+          }
+          nodes.push(card);
+        }
+      }
+    }
+    if (!nodes.length) {
+      nodes.push(el('p', 'text-[12px] text-ink/50 leading-relaxed', 'Ask for anything: research an event, read a LinkedIn profile, draft or rework a post in your voice, or work with files in your workspace. Claude decides which tools to use; you approve anything that changes your computer.'));
+    }
+    log.replaceChildren(...nodes);
+    log.scrollTop = log.scrollHeight;
+    try { sessionStorage.setItem('indo.agent', JSON.stringify(agent.messages)); } catch { /* full: keep in memory */ }
+  }
+
+  let decisions = {}, waitingFor = [];
+  function decide(id, ok) {
+    decisions[id] = ok;
+    if (waitingFor.every((w) => w in decisions)) {
+      const approvals = decisions;
+      decisions = {}; waitingFor = [];
+      agentRun(approvals);
+    } else renderAgent(waitingFor.filter((w) => !(w in decisions)));
+  }
+
+  function setRunning(on) {
+    agent.running = on;
+    $('#ag-send').disabled = on;
+    $('#ag-stop').hidden = !on;
+  }
+
+  async function agentRun(approvals) {
+    setRunning(true);
+    agent.stop = false;
+    status('#ag-status', 'Working…');
+    renderAgent();
+    try {
+      while (!agent.stop) {
+        const r = await pcall('POST', '/agent', { messages: agent.messages, provider: agentProv.value, model: agentModel.value || undefined, approvals }, 600000);
+        approvals = undefined;
+        agent.messages = r.messages;
+        if (r.next === 'approve') {
+          waitingFor = r.pending;
+          setRunning(false);
+          renderAgent(r.pending);
+          status('#ag-status', 'Waiting for your approval.');
+          return;
+        }
+        renderAgent();
+        if (r.next === 'done') { status('#ag-status', (r.notes || []).join(' ') || `Done · ${r.model}`); break; }
+      }
+      if (agent.stop) status('#ag-status', 'Stopped.');
+    } catch (err) {
+      status('#ag-status', err.message, true);
+    } finally {
+      setRunning(false);
+      renderAgent(waitingFor);
+    }
+  }
+
+  // Tool calls left unanswered (stopped, or a new message instead of a decision) get a result so the conversation stays valid.
+  function closeOpenTools() {
+    const last = agent.messages.at(-1);
+    if (!last || last.role !== 'assistant' || !Array.isArray(last.content)) return [];
+    return last.content.filter((b) => b.type === 'tool_use')
+      .map((b) => ({ type: 'tool_result', tool_use_id: b.id, content: 'The user stopped this action.', is_error: true }));
+  }
+
+  $('#ag-form').addEventListener('submit', (e) => {
+    e.preventDefault();
+    const input = $('#ag-input'), text = input.value.trim();
+    if (!text || agent.running) return;
+    if (!agentProv.value) { status('#ag-status', 'No Claude provider. Open Settings to connect Anthropic or Amazon Bedrock.', true); return; }
+    const closing = closeOpenTools();
+    agent.messages.push({ role: 'user', content: closing.length ? [...closing, { type: 'text', text }] : text });
+    waitingFor = []; decisions = {};
+    input.value = '';
+    agentRun();
+  });
+  $('#ag-input').addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) { e.preventDefault(); $('#ag-form').requestSubmit(); }
+  });
+  $('#ag-stop').addEventListener('click', () => { agent.stop = true; status('#ag-status', 'Stopping after this step…'); });
+  $('#ag-new').addEventListener('click', () => {
+    if (agent.running) return;
+    agent.messages = []; waitingFor = []; decisions = {};
+    status('#ag-status', '');
+    renderAgent();
+  });
+
+  function fillAgentModels() {
+    const id = agentProv.value;
+    modelOptions(agentModel, null, agent.providers[id], localStorage.getItem(`indo.agent.model.${id}`));
+    localStorage.setItem('indo.agent.provider', id);
+  }
+  agentProv.addEventListener('change', fillAgentModels);
+  agentModel.addEventListener('change', () => localStorage.setItem(`indo.agent.model.${agentProv.value}`, agentModel.value));
+
+  $('#agent-btn').addEventListener('click', async () => {
+    if (!adlg.open) adlg.showModal();
+    renderAgent(waitingFor);
+    $('#ag-input').focus();
+    try {
+      const [h, v] = await Promise.all([pcall('GET', '/health', undefined, 8000), pcall('GET', '/settings')]);
+      // The agent's tools run on Claude: Anthropic API or Amazon Bedrock.
+      agent.providers = Object.fromEntries(Object.entries(h.providers).filter(([id]) => id === 'anthropic' || id === 'bedrock'));
+      const keep = agentProv.value || localStorage.getItem('indo.agent.provider')
+        || (agent.providers.bedrock?.ready && !agent.providers.anthropic?.ready ? 'bedrock' : 'anthropic');
+      agentProv.replaceChildren(...Object.entries(agent.providers).map(([id, p]) => providerOption(id, p)));
+      if (agent.providers[keep]) agentProv.value = keep;
+      fillAgentModels();
+      $('#ag-ws').textContent = `workspace ${v.workspace}`;
+      if (!Object.values(agent.providers).some((p) => p.ready)) status('#ag-status', 'Connect Claude first: open Settings and add an Anthropic key or AWS credentials.', true);
+    } catch (err) { status('#ag-status', err.message, true); }
+  });
+  $('#agent-close').addEventListener('click', () => adlg.close());
+
+  // ---------- Internet connection ----------
+
+  async function checkNet() {
+    const net = $('#net');
+    try {
+      const r = await pcall('GET', '/net', undefined, 6000);
+      net.dataset.health = r.online ? 'ok' : 'off';
+      $('#net-text').textContent = r.online ? 'Internet' : 'No internet';
+    } catch {
+      net.dataset.health = navigator.onLine ? 'ok' : 'off';
+      $('#net-text').textContent = navigator.onLine ? 'Internet' : 'No internet';
+    }
+  }
+  addEventListener('online', checkNet);
+  addEventListener('offline', checkNet);
+  setInterval(checkNet, 60000);
+
+  let healthSeq = 0;
+  async function checkHealth() {
+    const seq = ++healthSeq;
+    const set = (h, text) => { if (seq !== healthSeq) return; $('#health').dataset.health = h; $('#health-text').textContent = text; };
+    set('checking', 'Checking');
+    try {
+      const h = await api.health();
+      if (seq === healthSeq) { renderProviders(h.providers); renderEngineLabel(); }
+      if (h.target === 'local' && !personaLoaded) loadPersona({ openIfNew: true });
+      set('ok', 'Backend');
+    } catch (err) {
+      set('off', /configured/.test(err.message) ? 'Not configured' : 'Backend off');
+    }
+  }
+
+  function setTarget(t) {
+    state.target = t;
+    localStorage.setItem('indo.target', t);
+    $$('[data-target]').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.target === t)));
+    $('#sent-to').textContent = targetLabel();
+    renderAuth();
+    checkHealth();
+  }
+  $$('[data-target]').forEach((b) => b.addEventListener('click', () => setTarget(b.dataset.target)));
+
+  // ---------- Boot ----------
+
+  renderSteps();
+  renderSummary();
+  checkNet();
+  auth.handleRedirect()
+    .catch((err) => status('#save-status', err.message, true))
+    .finally(() => setTarget(state.target));
+
+  if (new URLSearchParams(location.search).has('audit')) {
+    const s = document.createElement('script');
+    s.src = 'verify-motion.js';
+    document.body.append(s);
+  }
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,8 @@
+[project]
+name = "linkedin-indo"
+version = "0.6.0"
+requires-python = ">=3.13"
+
+[tool.pytest.ini_options]
+pythonpath = ["src", "."]
+testpaths = ["tests/unit"]

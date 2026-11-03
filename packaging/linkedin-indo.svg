@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="128" height="128">
+  <!-- LinkedIn Indo app icon: the page's "LI/" mark on its dark canvas, with the accent rail. -->
+  <rect x="4" y="4" width="120" height="120" rx="22" fill="#09090B"/>
+  <rect x="4" y="96" width="120" height="6" fill="#991B1B"/>
+  <text x="64" y="76" text-anchor="middle" font-family="JetBrains Mono, DejaVu Sans Mono, monospace"
+        font-size="46" font-weight="700" fill="#FAFAFA">LI/</text>
+</svg>
