@@ -19,3 +19,4 @@ __pycache__/
 *.pyc
 .env
 *.tfstate*
+dist/linkedin-indo_*.deb
