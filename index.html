@@ -694,6 +694,10 @@
       </div>
       <p class="err" id="pse-url"></p>
       <label class="flex items-center gap-2 text-[11px] text-ink/70"><input type="checkbox" id="ps-overwrite"> Replace the headline and about I already typed</label>
+      <div id="scan-fallback-hint" class="mt-2 p-2.5 border border-accent/40 bg-accent/5 text-[11px] text-ink/90 flex flex-wrap items-center justify-between gap-2" hidden>
+        <span>⚡ Network rate-limited (HTTP 999)? Use the local LinkedIn connector to load your saved page:</span>
+        <button type="button" id="scan-auto-import" class="btn-ghost bx !border-accent !text-accent font-bold">Auto-import saved LinkedIn Activity</button>
+      </div>
       <p id="persona-scan-status" class="status" role="status"></p>
     </form>
 
@@ -728,14 +732,14 @@
     <form id="persona-import" novalidate class="space-y-4">
       <h3 class="lbl !text-ink !mb-0">2 · Load every post you have written</h3>
       <ol class="text-[12px] leading-relaxed text-ink/70 list-decimal pl-5 space-y-1">
-        <li>Open LinkedIn's <a class="underline" href="https://www.linkedin.com/mypreferences/d/download-my-data" target="_blank" rel="noopener">Get a copy of your data</a> page.</li>
-        <li>Choose <em>Want something in particular?</em>, tick <strong>Posts</strong> (and Profile, Comments), and request the archive. LinkedIn emails a link, usually within minutes.</li>
-        <li>Upload the ZIP here. The app reads every post you have published (the profile scan above only sees recent ones). It never logs in to LinkedIn.</li>
+        <li>Open LinkedIn's <a class="underline" href="https://www.linkedin.com/mypreferences/d/download-my-data" target="_blank" rel="noopener">Get a copy of your data</a> page, or save your profile/activity page (<kbd class="px-1 border border-line rounded">Ctrl+S</kbd>).</li>
+        <li>Upload the export ZIP or saved HTML file here. It reads every post without network rate-limiting.</li>
       </ol>
-      <div><label class="lbl" for="pi-zip">LinkedIn export ZIP</label><span class="field bx"><input id="pi-zip" type="file" accept=".zip,application/zip"></span></div>
+      <div><label class="lbl" for="pi-zip">LinkedIn export ZIP or saved HTML page</label><span class="field bx"><input id="pi-zip" type="file" accept=".zip,.html,.htm,application/zip,text/html"></span></div>
       <div><label class="lbl" for="pi-text">Or paste posts · separate them with a line of ---</label><span class="field bx"><textarea id="pi-text" rows="4"></textarea></span></div>
       <div class="flex flex-wrap items-center gap-3">
         <button type="submit" class="btn-ghost bx">Import and train</button>
+        <button type="button" id="pi-auto-detect" class="btn-ghost bx !border-accent !text-accent font-bold">⚡ Auto-detect saved LinkedIn pages</button>
         <p id="persona-import-status" class="status !mt-0" role="status"></p>
       </div>
     </form>
@@ -1905,10 +1909,19 @@
     e.preventDefault();
     const file = $('#pi-zip').files[0];
     const text = $('#pi-text').value.trim();
-    if (!file && !text) { status('#persona-import-status', 'Choose your LinkedIn export ZIP or paste some posts.', true); return; }
+    if (!file && !text) { status('#persona-import-status', 'Choose your LinkedIn export ZIP, saved HTML page, or paste some posts.', true); return; }
     status('#persona-import-status', file ? `Reading ${file.name}…` : 'Reading your posts…');
     try {
-      const body = file ? { zip: await fileToBase64(file) } : { text };
+      let body;
+      if (file) {
+        if (file.name.endsWith('.html') || file.name.endsWith('.htm')) {
+          body = { html: await file.text() };
+        } else {
+          body = { zip: await fileToBase64(file) };
+        }
+      } else {
+        body = { text };
+      }
       const view = await pcall('POST', '/persona/import', body);
       renderPersona(view);
       if (!personaLoaded || !$('#pa-name').value) fillForm(view.profile);
@@ -1916,6 +1929,20 @@
       $('#pi-zip').value = ''; $('#pi-text').value = '';
     } catch (err) { status('#persona-import-status', err.message, true); }
   });
+
+  const autoImportHandler = async (statusTarget) => {
+    status(statusTarget, 'Auto-detecting saved LinkedIn HTML in Downloads / Desktop…');
+    try {
+      const view = await pcall('POST', '/persona/import', { auto_detect: true });
+      renderPersona(view);
+      if (!personaLoaded || !$('#pa-name').value) fillForm(view.profile);
+      status(statusTarget, (view.notes || []).join(' '));
+      announce('LinkedIn Activity imported');
+    } catch (err) { status(statusTarget, err.message, true); }
+  };
+
+  $('#pi-auto-detect')?.addEventListener('click', () => autoImportHandler('#persona-import-status'));
+  $('#scan-auto-import')?.addEventListener('click', () => autoImportHandler('#persona-scan-status'));
 
   $('#persona-insp').addEventListener('submit', async (e) => {
     e.preventDefault();
@@ -1963,7 +1990,13 @@
       personaLoaded = true;
       status('#persona-scan-status', (view.notes || []).join(' '));
       announce('Profile scanned');
-    } catch (err) { status('#persona-scan-status', err.message, true); }
+      $('#scan-fallback-hint').hidden = true;
+    } catch (err) {
+      status('#persona-scan-status', err.message, true);
+      if (err.message && err.message.includes('999')) {
+        $('#scan-fallback-hint').hidden = false;
+      }
+    }
     finally { btn.disabled = false; }
   });
 

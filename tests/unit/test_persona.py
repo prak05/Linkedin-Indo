@@ -257,3 +257,32 @@ def test_server_onboarding_import_and_inspiration_flow(tmp_path, monkeypatch):
     finally:
         srv.shutdown()
         srv.server_close()
+
+
+def test_import_html_connector():
+    sample_html = """<!doctype html>
+    <html>
+    <head><title>Activity | Prakhar Sharma | LinkedIn</title></head>
+    <body>
+      <p class="ignore">short</p>
+      <p>Drove operations on the ground for the September edition of the HR Evolve Monthly Session, hosted in exclusive association with LinkedIn. It was a masterclass in execution and community scaling across Trivandrum.</p>
+      <p>Looking back at the intense momentum of September, the 4th Edition of the AI Evolve Meetup at the Floor of Madness, FAYA, stands out as a defining milestone in our tech ecosystem with state-wide engineering teams.</p>
+    </body>
+    </html>
+    """
+    res = persona.import_html(sample_html)
+    assert res["profile"]["name"] == "Prakhar Sharma"
+    assert len(res["posts"]) == 2
+    assert "HR Evolve" in res["posts"][0]["text"]
+    assert "AI Evolve" in res["posts"][1]["text"]
+
+
+def test_auto_detect_saved_html(tmp_path):
+    f1 = tmp_path / "Activity _ Prakhar _ LinkedIn.html"
+    f1.write_text("<html></html>", encoding="utf-8")
+    f2 = tmp_path / "random.txt"
+    f2.write_text("hello", encoding="utf-8")
+    detected = persona.auto_detect_saved_html([tmp_path])
+    assert len(detected) == 1
+    assert detected[0].name == f1.name
+

@@ -200,6 +200,67 @@ def import_text(text):
     return [{"text": t, "date": "", "url": ""} for t in (_clean_post(c) for c in chunks) if len(t.split()) >= 5]
 
 
+def import_html(html_content):
+    """Extract posts and profile metadata from a saved LinkedIn HTML page (e.g. Activity or Profile page).
+
+    Bypasses network rate limits / HTTP 999 entirely by reading pages saved directly from your browser.
+    Returns {"posts", "profile", "comments", "notes"}.
+    """
+    import html as html_lib
+    if isinstance(html_content, bytes):
+        html_content = html_content.decode("utf-8", errors="replace")
+
+    profile = {}
+    title_m = re.search(r"<title>(.*?)</title>", html_content, re.I)
+    if title_m:
+        parts = [p.strip() for p in title_m.group(1).split("|")]
+        for p in parts:
+            if p.lower() not in ("activity", "linkedin", "feed", "recent-activity"):
+                profile["name"] = p
+                break
+
+    paras = re.findall(r"<p[^>]*>(.*?)</p>", html_content, re.DOTALL)
+    posts = []
+    seen = set()
+    for p in paras:
+        clean = html_lib.unescape(re.sub(r"<[^>]+>", " ", p))
+        clean = re.sub(r"\s+", " ", clean).strip()
+        if len(clean) > 120:
+            if any(skip in clean.lower() for skip in [
+                "problem processing your payment", "feed-shared-update",
+                "follow", "view profile", "experience:", "all rights reserved"
+            ]):
+                continue
+            prefix = clean[:60]
+            if prefix not in seen:
+                seen.add(prefix)
+                posts.append({
+                    "text": clean,
+                    "date": datetime.now(timezone.utc).strftime("%Y-%m-%d"),
+                    "url": "https://www.linkedin.com/in/"
+                })
+
+    notes = [f"LinkedIn Connector: extracted {len(posts)} authentic posts from saved LinkedIn HTML page."]
+    return {"posts": posts[:MAX_POSTS], "comments": [], "profile": profile, "notes": notes}
+
+
+def auto_detect_saved_html(search_dirs=None):
+    """Search for saved LinkedIn Activity or Profile HTML files in common user folders."""
+    if search_dirs is None:
+        home = Path.home()
+        search_dirs = [home / "Downloads", home / "Desktop", home]
+    found_files = []
+    for d in search_dirs:
+        if not d.is_dir():
+            continue
+        for ext in ("*.html", "*.htm"):
+            for f in d.glob(ext):
+                name_low = f.name.lower()
+                if any(k in name_low for k in ("linkedin", "activity")):
+                    found_files.append(f)
+    return found_files
+
+
 def _key(text):
     return hashlib.sha256(" ".join(text.lower().split()).encode()).hexdigest()[:16]
 

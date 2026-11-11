@@ -234,25 +234,52 @@ class Handler(BaseHTTPRequestHandler):
 
     def _import_posts(self, body):
         if not isinstance(body, dict):
-            raise indo_core.ValidationError("Send {\"zip\": base64} or {\"text\": pasted posts}.")
+            raise indo_core.ValidationError("Send {\"zip\": base64}, {\"html\": string}, or {\"auto_detect\": true}.")
         notes, comments = [], []
-        if body.get("zip"):
+        if body.get("auto_detect"):
+            detected = persona.auto_detect_saved_html()
+            if not detected:
+                raise indo_core.ValidationError("No saved LinkedIn HTML files found in Downloads or Desktop.")
+            newest = max(detected, key=lambda f: f.stat().st_mtime)
+            result = persona.import_html(newest.read_text(encoding="utf-8", errors="replace"))
+            posts, notes, comments = result["posts"], result["notes"], result.get("comments", [])
+            profile = persona.load_profile(self.persona_dir)
+            if result["profile"].get("name") and not profile.get("name"):
+                persona.save_profile(persona.validate_answers({**profile, **result["profile"]}), self.persona_dir)
+            notes.append(f"Auto-imported from {newest.name}.")
+        elif body.get("html"):
+            raw_html = body["html"]
+            if raw_html.startswith("data:") or (len(raw_html) % 4 == 0 and not raw_html.strip().startswith("<")):
+                try:
+                    data = base64.b64decode(raw_html.split(",", 1)[-1], validate=True)
+                    raw_html = data.decode("utf-8", errors="replace")
+                except Exception:
+                    pass
+            result = persona.import_html(raw_html)
+            posts, notes, comments = result["posts"], result["notes"], result.get("comments", [])
+            profile = persona.load_profile(self.persona_dir)
+            if result["profile"].get("name") and not profile.get("name"):
+                persona.save_profile(persona.validate_answers({**profile, **result["profile"]}), self.persona_dir)
+        elif body.get("zip"):
             try:
                 data = base64.b64decode(body["zip"], validate=True)
             except (binascii.Error, TypeError, ValueError):
-                raise indo_core.ValidationError("The uploaded ZIP is not valid base64.") from None
-            result = persona.import_export(data)
-            posts, notes, comments = result["posts"], result["notes"], result["comments"]
-            profile = persona.load_profile(self.persona_dir)
-            if result["profile"].get("name") and not profile:
-                # First import: start the persona from the export's profile; answers can refine it later.
-                persona.save_profile(persona.validate_answers({k: v for k, v in result["profile"].items() if v}),
-                                     self.persona_dir)
+                raise indo_core.ValidationError("The uploaded file is not valid base64.") from None
+            if data.strip().startswith(b"<!doctype") or data.strip().startswith(b"<html") or b"<title>" in data[:1000].lower():
+                result = persona.import_html(data.decode("utf-8", errors="replace"))
+                posts, notes, comments = result["posts"], result["notes"], result.get("comments", [])
+            else:
+                result = persona.import_export(data)
+                posts, notes, comments = result["posts"], result["notes"], result["comments"]
+                profile = persona.load_profile(self.persona_dir)
+                if result["profile"].get("name") and not profile:
+                    persona.save_profile(persona.validate_answers({k: v for k, v in result["profile"].items() if v}),
+                                         self.persona_dir)
         elif body.get("text"):
             posts = persona.import_text(body["text"])
             notes = [f"Read {len(posts)} pasted posts."]
         else:
-            raise indo_core.ValidationError("Upload your LinkedIn export ZIP or paste some posts.")
+            raise indo_core.ValidationError("Upload your LinkedIn export ZIP, saved HTML page, or paste posts.")
         total = persona.add_posts(posts, self.persona_dir, replace=bool(body.get("replace")))
         if comments:
             persona.save_comments(comments, self.persona_dir)

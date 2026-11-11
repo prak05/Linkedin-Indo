@@ -253,6 +253,43 @@ def parse_kserc_and_aws(home_dir: Path):
                     pass
 
 
+def parse_linkedin_saved_html(search_dirs: list[Path]):
+    """Parses saved LinkedIn Activity/Profile HTML pages (e.g. from Downloads/Desktop)."""
+    import html as html_lib
+    seen_posts = set()
+    for root in search_dirs:
+        if not root.is_dir():
+            continue
+        for ext in ("*.html", "*.htm"):
+            for f in root.glob(ext):
+                name_low = f.name.lower()
+                if not any(k in name_low for k in ("linkedin", "activity")):
+                    continue
+                try:
+                    text = f.read_text(encoding="utf-8", errors="ignore")
+                    if "linkedin.com" not in text and "Activity" not in text:
+                        continue
+                    paras = re.findall(r"<p[^>]*>(.*?)</p>", text, re.DOTALL)
+                    for p in paras:
+                        clean = html_lib.unescape(re.sub(r"<[^>]+>", " ", p))
+                        clean = re.sub(r"\s+", " ", clean).strip()
+                        if len(clean) > 120 and not any(skip in clean.lower() for skip in [
+                            "problem processing your payment", "feed-shared-update", "follow", "view profile"
+                        ]):
+                            prefix = clean[:60]
+                            if prefix not in seen_posts:
+                                seen_posts.add(prefix)
+                                yield {
+                                    "source": f"LinkedIn Post: {clean[:45]}...",
+                                    "file_path": str(f),
+                                    "category": "linkedin_post",
+                                    "heading": "Authentic Published LinkedIn Post",
+                                    "text": clean
+                                }
+                except Exception:
+                    pass
+
+
 def build_index(force: bool = False, conn: sqlite3.Connection | None = None) -> dict:
     """Builds or refreshes the SQLite FTS5 + vector knowledge base."""
     start_time = time.time()
@@ -307,6 +344,7 @@ def build_index(force: bool = False, conn: sqlite3.Connection | None = None) -> 
         parse_dataset_json(linkedin_indo_dir / "dataset"),
         parse_github_readmes(home / "GITHUB"),
         parse_kserc_and_aws(home),
+        parse_linkedin_saved_html([home / "Downloads", home / "Desktop", home]),
         parse_all_documents_export(home / "ALL_DOCUMENTS_DATA_EXPORT.md"),
     ]
 
