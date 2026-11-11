@@ -172,6 +172,31 @@ def parse_resumes(resumes_dir: Path):
         }
 
 
+def parse_projects(projects_dir: Path):
+    """Parses projects/*.md files."""
+    if not projects_dir.is_dir():
+        return
+
+    for md in sorted(projects_dir.glob("*.md")):
+        print(f"[ingest] Parsing project: {md.name}")
+        try:
+            content = md.read_text(encoding="utf-8", errors="replace")
+            title = md.stem.replace("-", " ").title()
+            for line in content.splitlines():
+                if line.startswith("# "):
+                    title = line.lstrip("# ").strip()
+                    break
+            yield {
+                "source": f"Project: {title}",
+                "file_path": str(md),
+                "category": "github_project",
+                "heading": f"Engineering Project Spec — {title}",
+                "text": content
+            }
+        except Exception:
+            pass
+
+
 def parse_dataset_json(dataset_dir: Path):
     """Parses persona.json, evidence.json, and other dataset files."""
     if not dataset_dir.is_dir():
@@ -341,6 +366,7 @@ def build_index(force: bool = False, conn: sqlite3.Connection | None = None) -> 
     sources = [
         parse_cv_inventory(home / "prakhar_sharma_master_cv_inventory.md"),
         parse_resumes(linkedin_indo_dir / "resumes"),
+        parse_projects(linkedin_indo_dir / "projects"),
         parse_dataset_json(linkedin_indo_dir / "dataset"),
         parse_github_readmes(home / "GITHUB"),
         parse_kserc_and_aws(home),

@@ -95,6 +95,26 @@ flowchart LR
 
 ---
 
+## 📂 Curated Engineering Projects
+
+A dedicated catalog of production systems, GovTech engines, and clinical platforms is documented under [`projects/`](projects/):
+
+- **[KSERC AI Truing-Up Engine](projects/kserc-truing-up.md)**: Statutory GovTech utility tariff auditing engine automating 500+ page audited petition reviews for Kerala power utilities.
+- **[MediScribe 2.0](projects/mediscribe-clinical-ai.md)**: Ambient clinical intelligence converting consultation audio into zero-hallucination SOAP notes. Selected for **UST SIGHT 3.0 National Showcase**.
+- **[MedBuddy Clinical RAG](projects/medbuddy-clinical-rag.md)**: Dense + keyword literature QA engine. **1st Place Winner at Gravity IEDC-MCET Cluster Ideathon**.
+- **[Agri-Smart Pro](projects/agri-smart-irrigation.md)**: Precision irrigation optimization. **National Top 1.1% Finalist (Top 40 / 3,668)** in AICTE-Shell India Skills4Future.
+- **[Fasal Saarthi: Kushal Kisan](projects/fasal-saarthi-ai.md)**: 7-parameter soil/weather crop recommendation engine (95%+ accuracy) with IBM SkillsBuild / AICTE.
+- **[RetinaScan Diagnostic AI](projects/retinascan-ai.md)**: Multimodal Diabetic Retinopathy screening with Multi-CAM explainability maps.
+- **[OmniPrice ML Engine](projects/omniprice-ml-engine.md)**: Serverless price elasticity and revenue forecasting engine on AWS SageMaker.
+- **[Yugality LegalTech Mesh](projects/yugality-legaltech.md)**: AI contract compliance & legal intelligence. Backed by **IIT Patna IC** & **Startup Bihar**.
+- **[WhatsApp-MCP](projects/whatsapp-mcp.md)**: Production MCP server for real-time agent notifications and thread monitoring.
+- **[SGSSS Smart Grid](projects/sgsss-smart-grid.md)**: Solar microgrid monitoring, power quality analysis, and automated load balancing node.
+- **[PrakVerse Identity Mesh](projects/prakverse-identity-mesh.md)**: Local-first single-source-of-truth knowledge engine and career asset compiler.
+
+See [`projects/README.md`](projects/README.md) for full architecture specifications.
+
+---
+
 ## ✦ Perplexity Knowledge Terminal & Vector DB
 
 LinkedIn Indo includes an embedded, high-performance hybrid vector database (`knowledge.db`) powered by SQLite FTS5 full-text indexing and sublinear TF-IDF vector cosine similarity:

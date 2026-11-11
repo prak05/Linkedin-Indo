@@ -28,7 +28,7 @@ cp -r "$ROOT/src/indo_core" "$ROOT/src/handlers" "$ROOT/src/requirements-lambda.
 # Terraform code for linkedin-indo-aws (state stays in ~/.local/share/linkedin-indo/aws).
 cp "$ROOT"/infrastructure/*.tf "$ROOT/infrastructure/.terraform.lock.hcl" "$APP/infrastructure/"
 cp "$ROOT/samples/README.md" "$APP/samples-README.md"
-cp -r "$ROOT/samples" "$ROOT/persona" "$APP/"
+cp -r "$ROOT/samples" "$ROOT/persona" "$ROOT/projects" "$ROOT/resumes" "$APP/"
 find "$APP" -name __pycache__ -prune -exec rm -rf {} +
 
 python3.13 -m pip install --quiet --no-compile --disable-pip-version-check \
