@@ -51,6 +51,11 @@ def handler(event, context):
             if indo_core.drafting.made_locally(body["history"]):
                 return respond(200, indo_core.revise(body))
             return respond(200, indo_core.revise(body, client=_client_for(body, revising=True)))
+        if route == "POST /cover-letters":
+            req = indo_core.cover_letters.validate_request(body)
+            return respond(200, {"draft": indo_core.cover_letters.generate(req), "engine": "cloud"})
+        if route == "POST /cover-letters/revise":
+            return respond(200, {**indo_core.cover_letters.revise(body), "engine": "cloud"})
         return error(404, "Not found.")
     except indo_core.ValidationError as e:
         return error(400, str(e))

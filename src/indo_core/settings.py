@@ -22,6 +22,7 @@ KEY_ENVS = {
     "openrouter": "OPENROUTER_API_KEY",
 }
 BEDROCK_FIELDS = ("region", "profile", "access_key_id", "secret_access_key", "session_token")
+BEDROCK_AGENT_FIELDS = ("agent_id", "agent_alias_id")
 BEDROCK_SECRETS = ("access_key_id", "secret_access_key", "session_token")
 CLAUDE_CODE_SETTINGS = Path.home() / ".claude" / "settings.json"
 
@@ -48,9 +49,11 @@ def load():
         data = {}
     keys = data.get("keys") if isinstance(data.get("keys"), dict) else {}
     bedrock = data.get("bedrock") if isinstance(data.get("bedrock"), dict) else {}
+    agent_cfg = data.get("bedrock_agent") if isinstance(data.get("bedrock_agent"), dict) else {}
     return {
         "keys": {p: str(keys.get(p) or "") for p in KEY_ENVS},
         "bedrock": {f: str(bedrock.get(f) or "") for f in BEDROCK_FIELDS},
+        "bedrock_agent": {f: str(agent_cfg.get(f) or "") for f in BEDROCK_AGENT_FIELDS},
         "workspace": str(data.get("workspace") or default_workspace()),
     }
 
@@ -84,7 +87,8 @@ def view():
                "keys_saved": bool(b["access_key_id"] and b["secret_access_key"]),
                "key_hint": _hint(b["access_key_id"]) if b["access_key_id"] else "",
                "session_token": bool(b["session_token"])}
-    return {"keys": keys, "bedrock": bedrock, "workspace": s["workspace"], "file": str(path()),
+    return {"keys": keys, "bedrock": bedrock, "bedrock_agent": s.get("bedrock_agent", {}),
+            "workspace": s["workspace"], "file": str(path()),
             "claude_code_settings": CLAUDE_CODE_SETTINGS.is_file()}
 
 
@@ -103,12 +107,19 @@ def save(payload):
             raise ValidationError(f"Unknown Bedrock setting '{field}'.")
         if value is not None:
             s["bedrock"][field] = _text(value, f"Bedrock {field}", required=False, max_len=4000) or ""
+    for field, value in (payload.get("bedrock_agent") or {}).items():
+        if field in BEDROCK_AGENT_FIELDS and value is not None:
+            s["bedrock_agent"][field] = _text(value, f"Bedrock Agent {field}", required=False, max_len=200) or ""
     if payload.get("workspace") is not None:
         ws = _text(payload["workspace"], "Workspace", required=False, max_len=500)
         s["workspace"] = str(Path(ws).expanduser()) if ws else default_workspace()
     _write(s)
     apply(s)
     return view()
+
+
+def bedrock_agent():
+    return load()["bedrock_agent"]
 
 
 def import_claude_code(source=None):

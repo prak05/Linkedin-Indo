@@ -1,0 +1,23 @@
+{
+  "schema_version": "1.0",
+  "source_status": {
+    "linkedin_posts_export": "not_provided",
+    "public_profile_scan": "blocked_http_999",
+    "note": "No post is represented as a published LinkedIn post without a LinkedIn export or pasted post."
+  },
+  "style_samples": [
+    {
+      "id": "cloud-connect-briefing-user-draft",
+      "source": "local user-provided draft",
+      "published": false,
+      "text": "Draft brief for a Cloud Connect thank-you post: celebrate the Ignite badge, thank speakers in concise phrases, acknowledge volunteers and collaborators, and keep the tone crisp, warm, and community-oriented.",
+      "style_tags": [
+        "community",
+        "gratitude",
+        "event recap",
+        "concise",
+        "collaborative"
+      ]
+    }
+  ]
+}

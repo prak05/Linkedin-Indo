@@ -1,0 +1,46 @@
+{
+  "schema_version": "1.0",
+  "last_reviewed": "2026-11-03",
+  "evidence": [
+    {
+      "category": "education",
+      "claim": "B.Tech student in Computer Science and Engineering at Rajadhani Institute of Engineering and Technology; expected completion 2027.",
+      "source": "/home/prak05/Prakhar Sharma/01-resumes-profiles/Documents__Profile of PRAKHAR SHARMA.txt"
+    },
+    {
+      "category": "experience",
+      "claim": "Project Intern at VirtuNexa, working on Android application development with Java and Kotlin.",
+      "source": "/home/prak05/Prakhar Sharma/source-documents/profile.txt"
+    },
+    {
+      "category": "experience",
+      "claim": "Artificial Intelligence trainee through Edunet Foundation and IBM SkillsBuild.",
+      "source": "/home/prak05/Prakhar Sharma/source-documents/profile.txt"
+    },
+    {
+      "category": "experience",
+      "claim": "Cloud computing internship through Innovate Intern, with a Google Cloud focus.",
+      "source": "/home/prak05/Prakhar Sharma/source-documents/profile.txt"
+    },
+    {
+      "category": "experience",
+      "claim": "Data science internship at A.N.D. Intern and cloud/front-end internships through Edunet Foundation and EISystems Technologies.",
+      "source": "/home/prak05/Prakhar Sharma/source-documents/profile.txt"
+    },
+    {
+      "category": "leadership",
+      "claim": "MuLearn Alumni Cell Lead managing a community described in local records as 600 members across Kerala; founded Vidya Sadhnam with 300+ direct reach and organised large workshops.",
+      "source": "/home/prak05/Prakhar Sharma/01-resumes-profiles/Documents__Profile of PRAKHAR SHARMA.txt"
+    },
+    {
+      "category": "projects",
+      "claim": "Built or contributed to KSERC regulatory analysis, MediScribe evidence-based medical AI, LinkedIn Indo, Report Indo, Fasal Saarthi, smart irrigation, banking, and accommodation/chatbot projects.",
+      "source": "/home/prak05/Prakhar Sharma/project-reports/"
+    },
+    {
+      "category": "community",
+      "claim": "Participated in CSI, IEEE, AWS/cloud, cybersecurity, Android, web development, 3D printing, and leadership workshops.",
+      "source": "/home/prak05/Prakhar Sharma/source-documents/profile.txt"
+    }
+  ]
+}

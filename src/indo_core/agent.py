@@ -67,13 +67,26 @@ TOOLS = [
                                            "The user must approve it. Returns exit code, stdout and stderr.",
      "input_schema": {"type": "object", "properties": {"command": {"type": "string"}}, "required": ["command"],
                       "additionalProperties": False}},
+    {"name": "search_my_knowledge",
+     "description": "Perplexity-style search over Prakhar's personal knowledge base — 22,000+ indexed chunks "
+                    "spanning all documents, CV, resumes, KSERC AI project, AWS CloudConnect, GitHub projects, "
+                    "internships, and records. Returns cited, evidence-backed excerpts.",
+     "input_schema": {"type": "object",
+                      "properties": {
+                          "query": {"type": "string", "description": "Search query or question"},
+                          "category": {"type": "string", "description": "Optional category filter: profile, resume, github_project, kserc, aws_event, documents_export"}
+                      },
+                      "required": ["query"],
+                      "additionalProperties": False}},
 ]
 
 SYSTEM = """You are the assistant inside LinkedIn Indo, a desktop app on the user's own Linux computer. \
 You help them with LinkedIn work (researching events and people, planning and writing posts and comments \
 in their voice) and with general tasks on this computer, like a small local Claude Code.
 
-Tools: web_search and fetch_url reach the internet; linkedin_profile reads public LinkedIn profiles; \
+Tools: search_my_knowledge queries their local personal knowledge base (22,000+ chunks of real documents, \
+projects, KSERC, AWS, resumes, and records) with Perplexity-style citations; \
+web_search and fetch_url reach the internet; linkedin_profile reads public LinkedIn profiles; \
 get_persona and save_draft use the app's persona and drafts; list_files, read_file, write_file and \
 run_command work in the workspace folder {workspace}. write_file and run_command ask the user first; \
 if they decline, accept it and continue without that action.
@@ -255,6 +268,19 @@ def run_command(command):
     return _clip(out)
 
 
+def search_my_knowledge(query, category=None):
+    query = (query or "").strip()
+    if not query:
+        raise ToolError("Give a query to search your personal knowledge base.")
+    try:
+        from .vector_db.query import search as vdb_search
+        from .rag import format_perplexity_results
+        results = vdb_search(query, n_results=6, category_filter=category or None)
+        return _clip(format_perplexity_results(query, results))
+    except Exception as e:
+        raise ToolError(f"Knowledge search failed: {e}") from None
+
+
 def run_tool(name, args, persona_dir=None, posts_dir=None):
     args = args if isinstance(args, dict) else {}
     calls = {
@@ -267,6 +293,7 @@ def run_tool(name, args, persona_dir=None, posts_dir=None):
         "read_file": lambda: read_file(args.get("path")),
         "write_file": lambda: write_file(args.get("path"), str(args.get("content") or "")),
         "run_command": lambda: run_command(args.get("command")),
+        "search_my_knowledge": lambda: search_my_knowledge(args.get("query"), args.get("category")),
     }
     if name not in calls:
         raise ToolError(f"There is no tool called {name}.")
@@ -376,6 +403,15 @@ def step(payload, client=None, persona_dir=None, posts_dir=None):
 
     if last["role"] == "assistant":
         return {"messages": messages, "next": "done", "pending": [], "notes": [], "model": model}
+
+    # If AWS Bedrock Agent model is selected, call Bedrock Agent Runtime directly
+    if provider == "bedrock" and model == "bedrock-agent":
+        last_user = next((m["content"] for m in reversed(messages) if m["role"] == "user"), "")
+        if isinstance(last_user, list):
+            last_user = " ".join(b.get("text", "") for b in last_user if isinstance(b, dict) and b.get("type") == "text")
+        reply = llm.invoke_bedrock_agent(str(last_user))
+        messages = messages + [{"role": "assistant", "content": [{"type": "text", "text": reply}]}]
+        return {"messages": messages, "next": "done", "pending": [], "notes": ["Answered by AWS Bedrock Agent."], "model": "bedrock-agent"}
 
     # 2. The user (or tool results) spoke last: ask the model.
     response = _call_model(client or llm.get_client(provider), provider, model, _system(persona_dir), messages)

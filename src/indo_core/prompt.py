@@ -83,6 +83,22 @@ def system_prompt(samples, persona=None):
     return out
 
 
+def system_prompt_with_rag(samples, persona=None, topic=None):
+    """system_prompt enriched with verified personal facts from the vector knowledge base."""
+    base = system_prompt(samples, persona)
+    if not topic:
+        return base
+    try:
+        from .rag import facts_block
+        block = facts_block(topic)
+        if block:
+            return base + f"\n\n{block}\nWhen drafting the post, weave in any relevant verified facts from above with exact real names, dates, metrics, and details."
+    except Exception:
+        pass
+    return base
+
+
+
 def request_text(req, event_text, inspiration=None):
     """The text part of the first user message. inspiration is a persona.structure() result."""
     lines = [

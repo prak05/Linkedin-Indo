@@ -48,6 +48,17 @@ def handler(event, context):
     try:
         if route == "POST /posts":
             return respond(201, save(sub, json_body(event)))
+        if route == "POST /cover-letters/save":
+            body = json_body(event)
+            req = indo_core.cover_letters.validate_request(body)
+            draft = body.get("draft")
+            if not isinstance(draft, str) or not draft.strip():
+                raise indo_core.ValidationError("Draft is required.")
+            return respond(201, save(sub, {
+                "topic": f"Cover letter — {req['job_title']} at {req['company']}",
+                "when": req["location"] or "job application",
+                "draft": draft,
+            }))
         if route == "GET /posts":
             return respond(200, list_for(sub))
         return error(404, "Not found.")

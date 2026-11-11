@@ -3,8 +3,19 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>LinkedIn Indo // Post Terminal</title>
-<script>document.documentElement.classList.add('boot');</script>
+<title>LinkedIn Indo // Perplexity Knowledge Terminal</title>
+<script>
+  (function () {
+    try {
+      var saved = localStorage.getItem('indo.theme');
+      var theme = saved || 'dark';
+      document.documentElement.setAttribute('data-theme', theme);
+    } catch (e) {
+      document.documentElement.setAttribute('data-theme', 'dark');
+    }
+  })();
+  document.documentElement.classList.add('boot');
+</script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Syne:wght@700;800&display=swap">
@@ -13,32 +24,64 @@
 <link rel="icon" href="icon.svg" type="image/svg+xml">
 <style type="text/tailwindcss">
   @theme {
-    --color-canvas: #FFFFFF;
-    --color-ink: #0A0A0A;
-    --color-line: #D9D9D9;
-    --color-accent: #DC2626;
+    --color-canvas: #0D0E11;
+    --color-ink: #F4F4F6;
+    --color-line: #222329;
+    --color-accent: #20B2AA;
+    --color-surface: #15161A;
+    --color-surface-2: #1E1F26;
     --font-display: "Syne", ui-sans-serif, system-ui, sans-serif;
     --font-mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace;
   }
 </style>
 <style id="motion">
   /* Motion system: PRD section 16. Two curves only; animate transform, opacity, clip-path. */
-  :root {
-    --canvas: #FFFFFF;
-    --ink: #0A0A0A;
-    --line: #D9D9D9;
-    --accent: #DC2626;
+  :root, html[data-theme="dark"] {
+    --canvas: #0D0E11;
+    --ink: #F4F4F6;
+    --line: #222329;
+    --accent: #20B2AA;
     --on-accent: #FFFFFF;
+    --surface: #15161A;
+    --surface-2: #1E1F26;
+    --color-canvas: #0D0E11;
+    --color-ink: #F4F4F6;
+    --color-line: #222329;
+    --color-accent: #20B2AA;
+    --color-surface: #15161A;
+    --color-surface-2: #1E1F26;
     --macro: cubic-bezier(0.16, 1, 0.3, 1);
     --micro: cubic-bezier(0.25, 1, 0.5, 1);
     --drawer-peek: 44px;
-  }
-  html { color-scheme: light; }
-  /* Black band (header): the palette flips inside it, Tailwind's colour classes included. */
-  .band {
-    --canvas: #0A0A0A; --ink: #FFFFFF; --line: #3F3F46;
-    --color-canvas: #0A0A0A; --color-ink: #FFFFFF; --color-line: #3F3F46;
     color-scheme: dark;
+  }
+  html[data-theme="light"] {
+    --canvas: #F8F9FA;
+    --ink: #111827;
+    --line: #E5E7EB;
+    --accent: #0D9488;
+    --on-accent: #FFFFFF;
+    --surface: #FFFFFF;
+    --surface-2: #F3F4F6;
+    --color-canvas: #F8F9FA;
+    --color-ink: #111827;
+    --color-line: #E5E7EB;
+    --color-accent: #0D9488;
+    --color-surface: #FFFFFF;
+    --color-surface-2: #F3F4F6;
+    color-scheme: light;
+  }
+  html { color-scheme: dark; }
+  /* Black band (header): the palette flips inside it, Tailwind's colour classes included. */
+  .band, html[data-theme="dark"] .band {
+    --canvas: #08080A; --ink: #F4F4F6; --line: #222329;
+    --color-canvas: #08080A; --color-ink: #F4F4F6; --color-line: #222329;
+    color-scheme: dark;
+  }
+  html[data-theme="light"] .band {
+    --canvas: #FFFFFF; --ink: #111827; --line: #E5E7EB;
+    --color-canvas: #FFFFFF; --color-ink: #111827; --color-line: #E5E7EB;
+    color-scheme: light;
   }
   html, body { background: var(--canvas); color: var(--ink); }
   body { font-family: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace; }
@@ -46,6 +89,8 @@
 
   :focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
   :focus:not(:focus-visible) { outline: none; }
+
+  select, option { background: var(--canvas); color: var(--ink); }
 
   /* Staged load: one group every 75 ms (MO-1, MO-2) */
   @keyframes k-fade   { from { opacity: 0; } }
@@ -118,14 +163,14 @@
   .is-entering .panel-inner { opacity: 0; transform: translateY(8px); transition: none; }
 
   /* Fields */
-  .lbl { display: block; margin-bottom: 8px; font-size: 11px; letter-spacing: 0.2em; text-transform: uppercase; color: rgb(10 10 10 / 0.6); }
+  .lbl { display: block; margin-bottom: 8px; font-size: 11px; letter-spacing: 0.2em; text-transform: uppercase; color: color-mix(in srgb, var(--ink) 65%, transparent); }
   .field { display: block; border: 1px solid var(--line); }
   .field input, .field textarea {
     display: block; width: 100%; padding: 10px 12px; background: transparent; color: var(--ink);
     font: inherit; font-size: 14px; outline-offset: 3px;
   }
   .field textarea { resize: vertical; min-height: 3.25rem; }
-  .field ::placeholder { color: rgb(10 10 10 / 0.3); }
+  .field ::placeholder { color: color-mix(in srgb, var(--ink) 35%, transparent); }
   .field input[type="file"] { padding: 8px; font-size: 12px; }
   .field input[type="file"]::file-selector-button {
     margin-right: 12px; padding: 6px 10px; border: 0; background: var(--ink); color: var(--canvas);
@@ -142,7 +187,7 @@
     display: grid; grid-template-columns: auto minmax(0, 1fr); column-gap: 10px; row-gap: 2px; align-items: center;
     padding: 12px; border: 1px solid var(--line); cursor: pointer;
   }
-  .tick { grid-row: span 2; position: relative; width: 10px; height: 10px; border: 1px solid rgb(10 10 10 / 0.5); }
+  .tick { grid-row: span 2; position: relative; width: 10px; height: 10px; border: 1px solid color-mix(in srgb, var(--ink) 45%, transparent); }
   .tick::before { content: ""; position: absolute; inset: 1px; background: var(--ink); transform: scale(0); transition: transform 140ms var(--micro); }
   .tile:has(:checked) .tick::before { transform: scale(1); }
   .tile:has(:checked)::after { opacity: 1; }
@@ -172,14 +217,42 @@
     color: var(--ink); font-size: 11px; letter-spacing: 0.2em; text-transform: uppercase; cursor: pointer;
   }
 
-  /* Persona panel */
-  #persona-dlg, #settings-dlg, #agent-dlg { width: min(860px, calc(100vw - 2rem)); max-height: calc(100dvh - 2rem); padding: 0; margin: auto;
+  /* Persona and dialog panels */
+  #persona-dlg, #settings-dlg, #agent-dlg, #knowledge-dlg, #cover-dlg { width: min(860px, calc(100vw - 2rem)); max-height: calc(100dvh - 2rem); padding: 0; margin: auto;
     color: var(--ink); background: var(--canvas); border: 1px solid var(--line); border-top: 4px solid var(--accent); }
-  #persona-dlg::backdrop, #settings-dlg::backdrop, #agent-dlg::backdrop { background: rgb(10 10 10 / 0.55); }
+  #persona-dlg::backdrop, #settings-dlg::backdrop, #agent-dlg::backdrop, #knowledge-dlg::backdrop, #cover-dlg::backdrop { background: rgb(0 0 0 / 0.75); backdrop-filter: blur(4px); }
+  html[data-theme="light"] #persona-dlg::backdrop,
+  html[data-theme="light"] #settings-dlg::backdrop,
+  html[data-theme="light"] #agent-dlg::backdrop,
+  html[data-theme="light"] #knowledge-dlg::backdrop,
+  html[data-theme="light"] #cover-dlg::backdrop {
+    background: rgb(15 23 42 / 0.4);
+    backdrop-filter: blur(4px);
+  }
 
-  /* Agent chat */
-  #agent-dlg { width: min(1040px, calc(100vw - 2rem)); height: calc(100dvh - 2rem); }
-  #agent-dlg[open] { display: flex; flex-direction: column; }
+  /* Knowledge Terminal & Agent dialogs */
+  #agent-dlg, #knowledge-dlg { width: min(1040px, calc(100vw - 2rem)); height: calc(100dvh - 2rem); }
+  #agent-dlg[open], #knowledge-dlg[open] { display: flex; flex-direction: column; }
+
+  /* Perplexity Knowledge Base Styles */
+  .kb-chip {
+    display: inline-flex; align-items: center; gap: 4px; padding: 4px 10px;
+    border: 1px solid var(--line); border-radius: 999px; font-size: 11px;
+    color: var(--ink); opacity: 0.75; cursor: pointer; transition: all 0.15s ease;
+    background: transparent;
+  }
+  .kb-chip:hover { opacity: 1; border-color: var(--accent); color: var(--accent); }
+  .kb-chip.active { background: var(--accent); color: #fff; opacity: 1; border-color: var(--accent); font-weight: 600; }
+  .kb-card {
+    background: var(--surface); border: 1px solid var(--line); border-radius: 8px;
+    padding: 14px 16px; transition: border-color 0.2s ease, transform 0.15s ease;
+  }
+  .kb-card:hover { border-color: var(--accent); }
+  .kb-badge {
+    display: inline-flex; align-items: center; gap: 4px; font-size: 10px;
+    font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em;
+    padding: 2px 7px; border-radius: 4px;
+  }
   .msg { max-width: 100%; font-size: 13px; line-height: 1.6; white-space: pre-wrap; overflow-wrap: anywhere; }
   .msg-user { align-self: flex-end; max-width: 85%; padding: 10px 14px; background: var(--ink); color: var(--canvas); }
   .msg-ai { border-left: 2px solid var(--accent); padding-left: 14px; }
@@ -284,9 +357,12 @@
           <span class="dot" aria-hidden="true"></span>
           <span id="net-text" aria-live="polite">Net</span>
         </span>
-        <button type="button" id="agent-btn" class="btn-ghost bx !border-accent" aria-haspopup="dialog">Agent</button>
+        <button type="button" id="knowledge-btn" class="btn-ghost bx !border-accent !text-accent font-bold flex items-center gap-1.5" aria-haspopup="dialog"><span class="w-1.5 h-1.5 rounded-full bg-accent animate-pulse"></span>Knowledge ✦</button>
+        <button type="button" id="agent-btn" class="btn-ghost bx" aria-haspopup="dialog">Agent</button>
+        <button type="button" id="cover-btn" class="btn-ghost bx" aria-haspopup="dialog">Cover letter</button>
         <button type="button" id="persona-btn" class="btn-ghost bx" aria-haspopup="dialog">Persona</button>
         <button type="button" id="settings-btn" class="btn-ghost bx" aria-haspopup="dialog">Settings</button>
+        <button type="button" id="theme-toggle" class="btn-ghost bx flex items-center gap-1.5" aria-label="Toggle theme" title="Toggle theme"><span id="theme-icon">☀️</span> <span id="theme-text">Light</span></button>
         <button type="button" id="auth-btn" class="btn-ghost bx" hidden>Sign in</button>
       </div>
     </div>
@@ -518,7 +594,55 @@
   </main>
 </div>
 
-<datalist id="reason-list">
+  <dialog id="cover-dlg" aria-labelledby="cover-title">
+    <div class="flex items-center gap-4 px-5 py-4 border-b border-line sticky top-0 bg-canvas z-10">
+      <div>
+        <p class="text-[10px] tracking-[0.2em] uppercase text-accent">Application workspace</p>
+        <h2 id="cover-title" class="font-display font-bold uppercase text-xl tracking-[-0.02em]">Cover letter generator</h2>
+      </div>
+      <span id="cover-engine" class="text-[10px] tracking-[0.16em] uppercase text-ink/45 ml-auto">Local-first</span>
+      <button type="button" id="cover-close" class="btn-ghost bx">Close</button>
+    </div>
+    <div class="grid lg:grid-cols-[minmax(18rem,0.8fr)_minmax(24rem,1.2fr)] gap-0 min-h-[min(74vh,720px)]">
+      <section class="p-5 border-b lg:border-b-0 lg:border-r border-line space-y-5">
+        <div>
+          <p class="text-[10px] tracking-[0.2em] uppercase text-ink/45 mb-2">01 / Target</p>
+          <div class="grid grid-cols-1 gap-2" id="cover-tracks">
+            <label class="tile bx"><input type="radio" name="cover_track" value="software_ai_cloud" class="sr-only" checked><span class="tick" aria-hidden="true"></span><span class="text-xs uppercase tracking-[0.14em] font-bold">Software / AI / Cloud</span><span class="text-[10px] text-ink/50">Engineering, data, platform, AWS</span></label>
+            <label class="tile bx"><input type="radio" name="cover_track" value="management_hr" class="sr-only"><span class="tick" aria-hidden="true"></span><span class="text-xs uppercase tracking-[0.14em] font-bold">Management / HR</span><span class="text-[10px] text-ink/50">Programs, operations, people, community</span></label>
+            <label class="tile bx"><input type="radio" name="cover_track" value="all_rounder" class="sr-only"><span class="tick" aria-hidden="true"></span><span class="text-xs uppercase tracking-[0.14em] font-bold">All-rounder</span><span class="text-[10px] text-ink/50">Balanced technical and leadership profile</span></label>
+          </div>
+        </div>
+        <form id="cover-form" novalidate class="space-y-4">
+          <div><label class="lbl" for="cover-job-title">Job title</label><span class="field bx"><input id="cover-job-title" required placeholder="Software Engineer Intern"></span></div>
+          <div><label class="lbl" for="cover-company">Company</label><span class="field bx"><input id="cover-company" required placeholder="Google, AWS, Sony…"></span></div>
+          <div><label class="lbl" for="cover-location">Location · optional</label><span class="field bx"><input id="cover-location" placeholder="Bengaluru / Remote"></span></div>
+          <div><label class="lbl" for="cover-jd">Job description</label><span class="field bx"><textarea id="cover-jd" rows="9" placeholder="Paste the role description. The generator extracts relevant skills and responsibilities."></textarea></span></div>
+          <button type="submit" class="cta w-full" id="cover-generate"><span class="cta-fill" aria-hidden="true"></span><span class="cta-label"><span class="cta-a"><span class="t">Generate letter</span><span class="arw">→</span></span><span class="cta-b" aria-hidden="true"><span class="t">Generate letter</span><span class="arw">→</span></span></span></button>
+          <p id="cover-status" class="status" role="status"></p>
+        </form>
+      </section>
+      <section class="p-5 bg-ink/[0.02] flex flex-col min-h-0">
+        <div class="flex items-center gap-3 mb-4">
+          <div>
+            <p class="text-[10px] tracking-[0.2em] uppercase text-ink/45">02 / Review</p>
+            <p class="text-xs text-ink/55">Tailored from your persona and the role description.</p>
+          </div>
+          <button type="button" id="cover-copy" class="btn-ghost bx ml-auto" disabled>Copy</button>
+        </div>
+        <article id="cover-output" tabindex="-1" class="flex-1 min-h-[20rem] border border-line bg-canvas p-5 whitespace-pre-wrap text-[13px] leading-relaxed overflow-y-auto">Your letter will appear here.</article>
+        <form id="cover-revise-form" class="mt-4 flex gap-2" hidden>
+          <label class="sr-only" for="cover-feedback">Cover letter revision</label>
+          <span class="field bx flex-1"><input id="cover-feedback" placeholder="Shorter, more technical, emphasise leadership…"></span>
+          <button class="btn-ghost bx" type="submit">Revise</button>
+          <button class="cta" type="button" id="cover-save"><span class="cta-fill" aria-hidden="true"></span><span class="cta-label"><span class="cta-a"><span class="t">Save</span></span><span class="cta-b" aria-hidden="true"><span class="t">Save</span></span></span></button>
+        </form>
+        <p class="text-[10px] text-ink/45 mt-3">Nothing is submitted automatically. Review, revise, copy, then save.</p>
+      </section>
+    </div>
+  </dialog>
+
+  <datalist id="reason-list">
   <option value="mentor"><option value="teammate"><option value="organiser"><option value="judge">
   <option value="speaker"><option value="sponsor"><option value="colleague"><option value="friend">
 </datalist>
@@ -648,6 +772,8 @@
         <div><label class="lbl" for="set-profile">AWS profile · optional</label><span class="field bx"><input id="set-profile" placeholder="default" autocomplete="off"></span></div>
         <div><label class="lbl" for="set-akid">Access key ID · optional</label><span class="field bx"><input id="set-akid" autocomplete="off" spellcheck="false"></span></div>
         <div><label class="lbl" for="set-secret">Secret access key</label><span class="field bx"><input id="set-secret" type="password" autocomplete="off"></span></div>
+        <div><label class="lbl" for="set-bedrock-agent">AWS Bedrock Agent ID · optional</label><span class="field bx"><input id="set-bedrock-agent" placeholder="e.g. AGENT123" autocomplete="off"></span></div>
+        <div><label class="lbl" for="set-bedrock-alias">Agent Alias ID · optional</label><span class="field bx"><input id="set-bedrock-alias" placeholder="TSTALIASID" autocomplete="off"></span></div>
         <div class="md:col-span-2"><label class="lbl" for="set-token">Session token · only for temporary keys</label><span class="field bx"><input id="set-token" type="password" autocomplete="off"></span></div>
       </div>
       <div class="flex flex-wrap items-center gap-3">
@@ -676,6 +802,56 @@
     </div>
     <p id="settings-status" class="status" role="status"></p>
   </form>
+</dialog>
+
+<dialog id="knowledge-dlg" aria-labelledby="kb-title">
+  <div class="flex flex-wrap items-center gap-3 px-5 py-3 border-b border-line bg-canvas">
+    <div class="flex items-center gap-2">
+      <span class="w-2.5 h-2.5 rounded-full bg-accent animate-pulse"></span>
+      <h2 id="kb-title" class="font-display font-bold uppercase text-lg tracking-[-0.01em] text-accent">Perplexity Knowledge Base</h2>
+    </div>
+    <span id="kb-header-stats" class="text-[11px] tracking-[0.1em] text-ink/60">22,995 chunks indexed</span>
+    <button type="button" id="kb-reindex" class="btn-ghost bx ml-auto text-[10px]">↺ Re-index</button>
+    <button type="button" id="kb-close" class="btn-ghost bx">Close</button>
+  </div>
+
+  <div class="p-5 border-b border-line bg-surface space-y-3">
+    <div class="relative flex items-center">
+      <span class="absolute left-3.5 text-accent pointer-events-none text-sm font-bold">✦</span>
+      <input id="kb-query-input" type="text"
+             class="w-full bg-canvas border border-line pl-9 pr-24 py-2.5 text-sm rounded focus:border-accent outline-none text-ink font-mono transition-colors"
+             placeholder="Search anything across your PC: KSERC, AWS, Yugality, CV, code..." autocomplete="off">
+      <button type="button" id="kb-search-btn"
+              class="absolute right-2 px-3 py-1 bg-accent text-white text-xs font-bold rounded uppercase tracking-wider hover:opacity-90 transition-opacity">
+        Search
+      </button>
+    </div>
+
+    <!-- Filter chips -->
+    <div class="flex flex-wrap items-center gap-2 pt-1" id="kb-chip-bar">
+      <span class="text-[10px] tracking-wider uppercase text-ink/40 font-mono">Filter:</span>
+      <button type="button" class="kb-chip active" data-cat="">All Sources</button>
+      <button type="button" class="kb-chip" data-cat="profile">Profile &amp; CV</button>
+      <button type="button" class="kb-chip" data-cat="kserc">KSERC</button>
+      <button type="button" class="kb-chip" data-cat="aws_event">AWS CloudConnect</button>
+      <button type="button" class="kb-chip" data-cat="github_project">GitHub Projects</button>
+      <button type="button" class="kb-chip" data-cat="resume">Resumes</button>
+      <button type="button" class="kb-chip" data-cat="documents_export">All Documents</button>
+    </div>
+  </div>
+
+  <div id="kb-results-list" class="flex-1 overflow-y-auto p-5 flex flex-col gap-4">
+    <div class="text-center py-16 text-ink/40 text-xs font-mono">
+      <div class="text-2xl mb-2 text-accent">✦</div>
+      Type a query to search your personal vector knowledge base.<br>
+      Trained on 22,000+ local documents, work orders, code repositories, and credentials.
+    </div>
+  </div>
+
+  <div class="px-5 py-2.5 border-t border-line bg-canvas flex items-center justify-between text-[11px] text-ink/50 font-mono">
+    <span id="kb-footer-info">Storage: SQLite FTS5 + Sublinear TF-IDF Vector Cosine Engine</span>
+    <span id="kb-time-info">Instant retrieval (&lt;10ms)</span>
+  </div>
 </dialog>
 
 <dialog id="agent-dlg" aria-labelledby="agent-title">
@@ -756,6 +932,15 @@
   const drawerToggle = $('#drawer-toggle');
   const saveBtn = $('#save-btn');
   const newPostBtn = $('#new-post');
+  const coverDlg = $('#cover-dlg');
+  const coverForm = $('#cover-form');
+  const coverOutput = $('#cover-output');
+  const coverReviseForm = $('#cover-revise-form');
+  const coverGenerate = $('#cover-generate');
+  const coverCopy = $('#cover-copy');
+  const coverSave = $('#cover-save');
+  const coverStatus = $('#cover-status');
+  const coverState = { draft: '', history: [], request: null, busy: false };
   const genBtn = $('#gen-btn');
   const reviseForm = $('#f-revise');
   const draftOut = $('#draft-out');
@@ -1112,6 +1297,94 @@
     if (error) el.dataset.tone = 'error'; else delete el.dataset.tone;
   }
 
+  function coverStatusText(msg, error = false) {
+    coverStatus.textContent = msg;
+    if (error) coverStatus.dataset.tone = 'error'; else delete coverStatus.dataset.tone;
+  }
+
+  function coverRequest() {
+    return {
+      track: $('input[name="cover_track"]:checked')?.value || 'all_rounder',
+      job_title: $('#cover-job-title').value.trim(),
+      company: $('#cover-company').value.trim(),
+      location: $('#cover-location').value.trim(),
+      job_description: $('#cover-jd').value.trim(),
+      ...personaFields(),
+    };
+  }
+
+  function setCoverBusy(busy) {
+    coverState.busy = busy;
+    coverGenerate.disabled = busy;
+    coverGenerate.setAttribute('aria-busy', String(busy));
+    coverCopy.disabled = busy || !coverState.draft;
+    coverSave.disabled = busy || !coverState.draft;
+  }
+
+  function showCover(res) {
+    coverState.draft = res.draft;
+    coverState.history = res.history || [];
+    coverOutput.textContent = res.draft;
+    coverReviseForm.hidden = false;
+    coverCopy.disabled = false;
+    coverSave.disabled = false;
+    coverOutput.focus({ preventScroll: true });
+  }
+
+  $('#cover-btn').addEventListener('click', () => {
+    coverDlg.showModal();
+    $('#cover-job-title').focus();
+  });
+  $('#cover-close').addEventListener('click', () => coverDlg.close());
+  coverDlg.addEventListener('click', (e) => { if (e.target === coverDlg) coverDlg.close(); });
+  coverForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const req = coverRequest();
+    if (!req.job_title || !req.company) {
+      coverStatusText('Add the job title and company first.', true);
+      return;
+    }
+    setCoverBusy(true);
+    coverStatusText('Writing a tailored letter…');
+    try {
+      coverState.request = req;
+      showCover(await api.coverGenerate(req));
+      coverStatusText('Letter ready. Review before sending.');
+    } catch (err) {
+      coverStatusText(err.message, true);
+    } finally { setCoverBusy(false); }
+  });
+  coverReviseForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const feedback = $('#cover-feedback').value.trim();
+    if (!feedback || !coverState.draft || coverState.busy) return;
+    setCoverBusy(true);
+    coverStatusText('Revising…');
+    try {
+      showCover(await api.coverRevise({ ...coverState.request, draft: coverState.draft, feedback }));
+      $('#cover-feedback').value = '';
+      coverStatusText('Revision applied.');
+    } catch (err) {
+      coverStatusText(err.message, true);
+    } finally { setCoverBusy(false); }
+  });
+  coverCopy.addEventListener('click', async () => {
+    if (!coverState.draft) return;
+    await navigator.clipboard.writeText(coverState.draft);
+    coverStatusText('Copied to clipboard.');
+  });
+  coverSave.addEventListener('click', async () => {
+    if (!coverState.draft || coverState.busy) return;
+    setCoverBusy(true);
+    coverStatusText('Saving…');
+    try {
+      const res = await api.coverSave({ ...coverState.request, draft: coverState.draft });
+      coverStatusText(`Saved · ${res.id || res.path || 'cover letter'}`);
+    } catch (err) {
+      coverStatusText(err.message, true);
+    } finally { setCoverBusy(false); }
+  });
+
   const targetLabel = () => ({ mock: 'the in-browser mock (nothing leaves this page)', local: 'your local backend', cloud: 'your AWS backend' })[state.target];
 
   function renderReview() {
@@ -1258,6 +1531,17 @@
         const draft = `${body.history.at(-1).content}\n\n[Revision requested: ${body.feedback}]`;
         return { draft, history: [...body.history, { role: 'user', content: body.feedback }, { role: 'assistant', content: draft }] };
       }
+      case 'POST /cover-letters': {
+        return { draft: mockCover(body), engine: { engine: 'local' } };
+      }
+      case 'POST /cover-letters/revise': {
+        return { draft: `${body.draft}\n\n[Revision requested: ${body.feedback}]`, engine: { engine: 'local' } };
+      }
+      case 'POST /cover-letters/save': {
+        const item = { id: `mock-cover-${Date.now()}`, ...body };
+        mockStore.push(item);
+        return { id: item.id, path: `cover-letters/${item.id}.md` };
+      }
       case 'POST /posts': {
         const item = { id: `mock-${Date.now()}`, ...body, created_at: new Date().toISOString() };
         mockStore.push(item);
@@ -1280,6 +1564,10 @@
       p.source.type !== 'skip' ? `Event material: ${sourceLabel(p.source)}.` : null,
       thanks ? `Thank you to ${thanks}.` : null,
     ].filter((l) => l !== null).join('\n');
+  }
+
+  function mockCover(p) {
+    return `Dear Hiring Manager,\n\nI am writing to apply for the ${p.job_title} position at ${p.company}. I am a Computer Science and Engineering student with experience across software, AI, cloud, and community leadership.\n\nMy background includes LinkedIn Indo, KSERC regulatory automation, hosted AWS and Vidya Sadhnam events, and practical work with Python, JavaScript, AWS, Google Cloud, and machine learning.\n\nI would welcome the opportunity to discuss how I could contribute to ${p.company}.\n\nSincerely,\nPrakhar Sharma`;
   }
 
   const api = {
@@ -1315,6 +1603,9 @@
     generate(p) { return this.call('POST', '/drafts', p); },
     revise(p) { return this.call('POST', '/drafts/revise', p); },
     save(p) { return this.call('POST', '/posts', p); },
+    coverGenerate(p) { return this.call('POST', '/cover-letters', p); },
+    coverRevise(p) { return this.call('POST', '/cover-letters/revise', p); },
+    coverSave(p) { return this.call('POST', '/cover-letters/save', p); },
     list() { return this.call('GET', '/posts'); },
   };
 
@@ -1687,6 +1978,8 @@
     $('#set-file').textContent = v.file;
     $('#set-region').value = v.bedrock.region;
     $('#set-profile').value = v.bedrock.profile;
+    $('#set-bedrock-agent').value = v.bedrock.agent_id || '';
+    $('#set-bedrock-alias').value = v.bedrock.agent_alias_id || '';
     for (const id of ['#set-akid', '#set-secret', '#set-token']) $(id).value = '';
     $('#set-akid').placeholder = v.bedrock.keys_saved ? `saved ${v.bedrock.key_hint}` : 'AKIA…';
     $('#set-secret').placeholder = v.bedrock.keys_saved ? 'saved' : '';
@@ -1742,11 +2035,41 @@
   });
   $('#settings-close').addEventListener('click', () => sdlg.close());
 
+  // Theme toggle controller
+  const themeToggle = $('#theme-toggle');
+  const themeIcon = $('#theme-icon');
+  const themeText = $('#theme-text');
+
+  function updateThemeUI(theme) {
+    document.documentElement.setAttribute('data-theme', theme);
+    if (themeIcon) themeIcon.textContent = theme === 'light' ? '🌙' : '☀️';
+    if (themeText) themeText.textContent = theme === 'light' ? 'Dark' : 'Light';
+    if (themeToggle) themeToggle.setAttribute('aria-label', theme === 'light' ? 'Switch to dark theme' : 'Switch to light theme');
+  }
+
+  function getActiveTheme() {
+    return document.documentElement.getAttribute('data-theme') || 'dark';
+  }
+
+  if (themeToggle) {
+    themeToggle.addEventListener('click', () => {
+      const next = getActiveTheme() === 'light' ? 'dark' : 'light';
+      localStorage.setItem('indo.theme', next);
+      updateThemeUI(next);
+    });
+    updateThemeUI(getActiveTheme());
+  }
+
   $('#settings-form').addEventListener('submit', (e) => {
     e.preventDefault();
     const keys = {};
     $$('#set-keys input[data-key]').forEach((i) => { if (i.value.trim()) keys[i.dataset.key] = i.value.trim(); });
-    const bedrock = { region: $('#set-region').value.trim(), profile: $('#set-profile').value.trim() };
+    const bedrock = {
+      region: $('#set-region').value.trim(),
+      profile: $('#set-profile').value.trim(),
+      agent_id: $('#set-bedrock-agent').value.trim(),
+      agent_alias_id: $('#set-bedrock-alias').value.trim()
+    };
     const akid = $('#set-akid').value.trim(), secret = $('#set-secret').value.trim(), token = $('#set-token').value.trim();
     if (akid || secret) {
       if (!(akid && secret)) { status('#settings-status', 'Enter both the access key ID and the secret access key.', true); return; }
@@ -1795,6 +2118,7 @@
 
   function toolLine(name, input) {
     const a = input || {};
+    if (name === 'search_my_knowledge') return `🔍 Knowledge search: "${a.query || ''}" ${a.category ? `[${a.category}]` : ''}`;
     if (name === 'run_command') return `$ ${a.command || ''}`;
     if (name === 'write_file') return `${a.path || ''} · ${String(a.content || '').length.toLocaleString()} characters`;
     return Object.values(a).map(String).join(' ').slice(0, 160);
@@ -1952,6 +2276,155 @@
     } catch (err) { status('#ag-status', err.message, true); }
   });
   $('#agent-close').addEventListener('click', () => adlg.close());
+
+  // ---------- Perplexity Knowledge Base (Local Vector DB) ----------
+
+  const kdlg = $('#knowledge-dlg');
+  let currentKbCategory = '';
+
+  $('#knowledge-btn').addEventListener('click', async () => {
+    if (!kdlg.open) kdlg.showModal();
+    $('#kb-query-input').focus();
+    loadKbStats();
+  });
+  $('#kb-close').addEventListener('click', () => kdlg.close());
+
+  async function loadKbStats() {
+    try {
+      const s = await pcall('GET', '/rag/stats');
+      if (s && s.total) {
+        $('#kb-header-stats').textContent = `${Number(s.total).toLocaleString()} chunks indexed · ready`;
+        $('#kb-footer-info').textContent = `DB: ${s.db_path || 'knowledge.db'} · Updated: ${s.last_updated || 'recently'}`;
+      }
+    } catch {}
+  }
+
+  function escapeHtml(str) {
+    return (str || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+  }
+
+  function renderKbResultCard(r) {
+    const card = document.createElement('div');
+    card.className = 'kb-card flex flex-col gap-2 font-mono';
+    const pct = Math.round((r.score || 0) * 100);
+    const isLight = document.documentElement.getAttribute('data-theme') === 'light';
+    const catClass = isLight ? ({
+      profile: 'bg-purple-100 text-purple-800 border border-purple-300',
+      kserc: 'bg-teal-100 text-teal-800 border border-teal-300',
+      aws_event: 'bg-amber-100 text-amber-800 border border-amber-300',
+      github_project: 'bg-blue-100 text-blue-800 border border-blue-300',
+      resume: 'bg-emerald-100 text-emerald-800 border border-emerald-300',
+      documents_export: 'bg-indigo-100 text-indigo-800 border border-indigo-300',
+    }[r.category] || 'bg-gray-100 text-gray-800 border border-gray-300') : ({
+      profile: 'bg-purple-900/40 text-purple-300 border border-purple-500/40',
+      kserc: 'bg-teal-900/40 text-teal-300 border border-teal-500/40',
+      aws_event: 'bg-amber-900/40 text-amber-300 border border-amber-500/40',
+      github_project: 'bg-blue-900/40 text-blue-300 border border-blue-500/40',
+      resume: 'bg-emerald-900/40 text-emerald-300 border border-emerald-500/40',
+      documents_export: 'bg-indigo-900/40 text-indigo-300 border border-indigo-500/40',
+    }[r.category] || 'bg-zinc-800 text-zinc-300 border border-zinc-700');
+
+    card.innerHTML = `
+      <div class="flex items-center justify-between gap-2 text-xs">
+        <div class="flex items-center gap-2 truncate">
+          <span class="px-1.5 py-0.5 rounded bg-accent/20 text-accent font-bold text-[10px]">#${r.rank}</span>
+          <span class="font-bold text-ink truncate text-[13px]">${escapeHtml(r.source)}</span>
+        </div>
+        <div class="flex items-center gap-2 shrink-0">
+          <span class="kb-badge ${catClass}">${escapeHtml(r.category)}</span>
+          <span class="text-[11px] font-bold text-accent">${pct}% match</span>
+        </div>
+      </div>
+      ${r.file_path ? `<div class="text-[10px] text-ink/40 truncate select-all">📁 ${escapeHtml(r.file_path)}</div>` : ''}
+      <p class="text-[12px] leading-relaxed text-ink/80 bg-canvas/60 p-2.5 rounded border border-line select-text">${escapeHtml(r.excerpt)}</p>
+      <div class="flex items-center justify-end gap-2 pt-1 text-[10px]">
+        <button type="button" class="btn-ghost !h-6 !px-2 text-ink/60 hover:text-ink copy-quote-btn">Copy snippet</button>
+        <button type="button" class="btn-ghost !h-6 !px-2 !border-accent text-accent insert-draft-btn">Insert in topic</button>
+      </div>
+    `;
+
+    card.querySelector('.copy-quote-btn').addEventListener('click', async (e) => {
+      await navigator.clipboard.writeText(`[Source: ${r.source}] ${r.content || r.excerpt}`);
+      e.target.textContent = 'Copied!';
+      setTimeout(() => { e.target.textContent = 'Copy snippet'; }, 1500);
+    });
+
+    card.querySelector('.insert-draft-btn').addEventListener('click', () => {
+      const topIn = $('#i-topic');
+      if (topIn) {
+        topIn.value = `${topIn.value ? topIn.value + ' ' : ''}[${r.source}]: ${r.excerpt.slice(0, 150)}`;
+        kdlg.close();
+      }
+    });
+
+    return card;
+  }
+
+  async function runKbSearch() {
+    const q = $('#kb-query-input').value.trim();
+    if (!q) return;
+    const list = $('#kb-results-list');
+    list.innerHTML = `<div class="py-12 text-center text-ink/50 font-mono text-xs">
+      <div class="inline-block w-4 h-4 border-2 border-accent border-t-transparent rounded-full animate-spin mb-2"></div>
+      <div>Searching personal vector knowledge base...</div>
+    </div>`;
+    const t0 = performance.now();
+    try {
+      const resp = await pcall('POST', '/rag/search', {
+        query: q,
+        n_results: 10,
+        category: currentKbCategory || undefined
+      });
+      const elapsed = Math.round(performance.now() - t0);
+      $('#kb-time-info').textContent = `Retrieved in ${elapsed}ms`;
+      if (!resp.results || !resp.results.length) {
+        list.innerHTML = `<div class="py-12 text-center text-ink/40 font-mono text-xs">
+          No records matched "${q}". Try another keyword or switch category.
+        </div>`;
+        return;
+      }
+      list.replaceChildren(...resp.results.map(renderKbResultCard));
+    } catch (err) {
+      list.innerHTML = `<div class="py-8 text-center text-accent font-mono text-xs">
+        Search failed: ${err.message}
+      </div>`;
+    }
+  }
+
+  $$('#kb-chip-bar .kb-chip').forEach(chip => {
+    chip.addEventListener('click', () => {
+      $$('#kb-chip-bar .kb-chip').forEach(c => c.classList.remove('active'));
+      chip.classList.add('active');
+      currentKbCategory = chip.dataset.cat || '';
+      runKbSearch();
+    });
+  });
+
+  $('#kb-search-btn').addEventListener('click', runKbSearch);
+  $('#kb-query-input').addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      runKbSearch();
+    }
+  });
+
+  $('#kb-reindex').addEventListener('click', async () => {
+    const btn = $('#kb-reindex');
+    btn.disabled = true;
+    btn.textContent = '⏳ Indexing...';
+    try {
+      const res = await pcall('POST', '/rag/ingest', {});
+      loadKbStats();
+      btn.textContent = `✓ ${res.total || 0} done`;
+      setTimeout(() => { btn.disabled = false; btn.textContent = '↺ Re-index'; }, 2000);
+    } catch (err) {
+      btn.disabled = false;
+      btn.textContent = 'Error';
+    }
+  });
+
+  // Check and load stats on startup
+  setTimeout(loadKbStats, 1000);
 
   // ---------- Internet connection ----------
 

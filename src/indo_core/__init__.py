@@ -5,6 +5,7 @@ AWS Lambda handlers, so all three behave the same.
 """
 
 from .drafting import DraftError, engine_choice, generate, revise, status
+from . import cover_letters
 from .storage import list_posts, save_post
 from .validation import ValidationError, validate_draft_request, validate_post, validate_revise_request
 
@@ -20,4 +21,5 @@ __all__ = [
     "validate_draft_request",
     "validate_post",
     "validate_revise_request",
+    "cover_letters",
 ]

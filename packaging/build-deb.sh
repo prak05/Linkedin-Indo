@@ -28,6 +28,7 @@ cp -r "$ROOT/src/indo_core" "$ROOT/src/handlers" "$ROOT/src/requirements-lambda.
 # Terraform code for linkedin-indo-aws (state stays in ~/.local/share/linkedin-indo/aws).
 cp "$ROOT"/infrastructure/*.tf "$ROOT/infrastructure/.terraform.lock.hcl" "$APP/infrastructure/"
 cp "$ROOT/samples/README.md" "$APP/samples-README.md"
+cp -r "$ROOT/samples" "$ROOT/persona" "$APP/"
 find "$APP" -name __pycache__ -prune -exec rm -rf {} +
 
 python3.13 -m pip install --quiet --no-compile --disable-pip-version-check \
@@ -43,8 +44,14 @@ export INDO_POSTS_DIR="${INDO_POSTS_DIR:-$DATA/posts}"
 export INDO_SAMPLES_DIR="${INDO_SAMPLES_DIR:-$DATA/samples}"
 export INDO_CLOUD_CONFIG="${INDO_CLOUD_CONFIG:-$DATA/aws/config.cloud.js}"
 export INDO_PERSONA_DIR="${INDO_PERSONA_DIR:-$DATA/persona}"
-mkdir -p "$INDO_POSTS_DIR" "$INDO_SAMPLES_DIR"
-[ -e "$INDO_SAMPLES_DIR/README.md" ] || cp /usr/lib/linkedin-indo/samples-README.md "$INDO_SAMPLES_DIR/README.md"
+export INDO_VECTORDB_PATH="${INDO_VECTORDB_PATH:-$DATA/vectordb/knowledge.db}"
+mkdir -p "$INDO_POSTS_DIR" "$INDO_SAMPLES_DIR" "$INDO_PERSONA_DIR" "$DATA/vectordb"
+if [ -d /usr/lib/linkedin-indo/persona ] && [ ! -f "$INDO_PERSONA_DIR/persona.json" ]; then
+    cp -r /usr/lib/linkedin-indo/persona/* "$INDO_PERSONA_DIR/" 2>/dev/null || true
+fi
+if [ -d /usr/lib/linkedin-indo/samples ]; then
+    cp -n /usr/lib/linkedin-indo/samples/* "$INDO_SAMPLES_DIR/" 2>/dev/null || true
+fi
 if [ -x /usr/bin/python3.13 ]; then PY=/usr/bin/python3.13
 elif command -v python3.13 >/dev/null 2>&1; then PY=$(command -v python3.13)
 else echo "linkedin-indo: python3.13 not found" >&2; exit 1; fi

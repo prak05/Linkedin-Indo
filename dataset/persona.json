@@ -1,0 +1,61 @@
+{
+  "schema_version": "1.0",
+  "subject": {
+    "name": "Prakhar Sharma",
+    "location": "Trivandrum, Kerala, India",
+    "email": "praksediting5@gmail.com",
+    "phone": "+91 7994454919",
+    "linkedin_url": "https://www.linkedin.com/in/prak05",
+    "education": {
+      "degree": "Bachelor of Technology in Computer Science and Engineering",
+      "institution": "Rajadhani Institute of Engineering and Technology",
+      "expected_completion": "2027"
+    }
+  },
+  "positioning": {
+    "headline": "Computer Science student building practical AI, cloud and developer tools",
+    "summary": "Computer Science and Engineering student with hands-on experience across AI, cloud computing, full-stack prototypes, data science, and community leadership. Builds evidence-oriented tools, learns quickly, and communicates technical work clearly to users and collaborators.",
+    "target_roles": [
+      "Software Engineering Intern",
+      "Cloud Engineering Intern",
+      "AI/ML Engineering Intern",
+      "Developer Productivity or Platform Engineering Intern"
+    ],
+    "keywords": [
+      "Python",
+      "Java",
+      "JavaScript",
+      "FastAPI",
+      "AWS",
+      "Google Cloud",
+      "IBM Cloud",
+      "Terraform",
+      "Docker",
+      "Machine Learning",
+      "RAG",
+      "NLP",
+      "Git",
+      "SQL"
+    ]
+  },
+  "voice": {
+    "style": "clear, grateful, energetic, concise, community-minded",
+    "format": "short paragraphs, specific outcomes, named collaborators only when verified",
+    "avoid": [
+      "unverified superlatives",
+      "inflated metrics",
+      "claiming production scale without evidence",
+      "generic phrases such as 'hardworking and dedicated'"
+    ]
+  },
+  "verification": {
+    "linkedin_public_page": "unavailable_in_environment_http_999",
+    "source_priority": [
+      "original certificates and official records",
+      "project repositories and README files",
+      "local resume/profile text",
+      "user-provided LinkedIn export or pasted posts"
+    ],
+    "last_reviewed": "2026-11-03"
+  }
+}

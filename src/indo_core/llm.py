@@ -38,8 +38,12 @@ PROVIDERS = {
     # (us., eu., apac.) or global. Bare anthropic.* IDs are rejected for on-demand use.
     "bedrock": {"label": "Amazon Bedrock (Claude)", "kind": "bedrock", "key_env": None,
                 "default": "{geo}.anthropic.claude-opus-5-5",
-                "models": ["{geo}.anthropic.claude-opus-5-5", "{geo}.anthropic.claude-sonnet-5-5",
+                "models": ["{geo}.anthropic.claude-3-5-sonnet-20241022-v2:0",
+                           "{geo}.anthropic.claude-3-7-sonnet-20250219-v1:0",
+                           "{geo}.anthropic.claude-opus-5-5", "{geo}.anthropic.claude-sonnet-5-5",
                            "{geo}.anthropic.claude-haiku-5-5", "{geo}.anthropic.claude-fable-5-1",
+                           "anthropic.claude-3-5-haiku-20241022-v1:0", "anthropic.claude-3-haiku-20240307-v1:0",
+                           "bedrock-agent",
                            "global.anthropic.claude-opus-5-5", "global.anthropic.claude-sonnet-5-5"]},
     "openai": {"label": "OpenAI", "kind": "openai", "key_env": "OPENAI_API_KEY",
                "base_url": "https://api.openai.com/v1", "default": "gpt-5", "models": ["gpt-5", "gpt-5-mini"]},
@@ -157,6 +161,45 @@ def get_client(provider=None, api_key=None, timeout=TIMEOUT, max_retries=1):
     if not key:
         raise DraftError("ANTHROPIC_API_KEY is not set on the backend.", 500)
     return anthropic.Anthropic(api_key=key, timeout=timeout, max_retries=max_retries)
+
+
+def invoke_bedrock_agent(input_text: str, agent_id: str | None = None, alias_id: str | None = None, session_id: str = "linkedin-indo-session") -> str:
+    """Invoke an AWS Bedrock Agent directly using boto3 bedrock-agent-runtime."""
+    import boto3
+    b = settings.bedrock()
+    a_id = agent_id or b.get("agent_id") or os.environ.get("AWS_BEDROCK_AGENT_ID")
+    al_id = alias_id or b.get("agent_alias_id") or os.environ.get("AWS_BEDROCK_AGENT_ALIAS_ID") or "TSTALIASID"
+    if not a_id:
+        raise DraftError("AWS Bedrock Agent ID is not configured. Set it in Settings.", 400)
+
+    kwargs = {"region_name": bedrock_region()}
+    if b.get("profile"):
+        import botocore.session
+        sess = botocore.session.Session(profile=b["profile"])
+        kwargs["botocore_session"] = sess
+    elif b.get("access_key_id") and b.get("secret_access_key"):
+        kwargs["aws_access_key_id"] = b["access_key_id"]
+        kwargs["aws_secret_access_key"] = b["secret_access_key"]
+        if b.get("session_token"):
+            kwargs["aws_session_token"] = b["session_token"]
+
+    try:
+        client = boto3.client("bedrock-agent-runtime", **kwargs)
+        response = client.invoke_agent(
+            agentId=a_id,
+            agentAliasId=al_id,
+            sessionId=session_id,
+            inputText=input_text
+        )
+        parts = []
+        for event in response.get("completion", []):
+            chunk = event.get("chunk")
+            if chunk and "bytes" in chunk:
+                parts.append(chunk["bytes"].decode("utf-8", errors="replace"))
+        return "".join(parts).strip()
+    except Exception as e:
+        raise DraftError(f"Bedrock Agent error: {e}", 502) from None
+
 
 
 def _call_claude(client, provider, model, system, messages):
@@ -340,7 +383,9 @@ def generate(req, client=None, samples=None, fetch=None, provider=None, model=No
     shape = structure(inspiration["text"]) if inspiration else None
     content = blocks + [{"type": "text", "text": request_text(req, event_text, shape)}]
     history = [{"role": "user", "content": content}]
-    draft, more = _call(client or get_client(provider), provider, model, system_prompt(samples, persona), history)
+    from .prompt import system_prompt_with_rag
+    sys_prompt = system_prompt_with_rag(samples, persona, topic=req.get("topic"))
+    draft, more = _call(client or get_client(provider), provider, model, sys_prompt, history)
     history.append({"role": "assistant", "content": draft})
     return {"draft": draft, "history": history, "notes": notes + more + [_engine_note(provider, model)]}
 
@@ -349,8 +394,11 @@ def revise(req, client=None, samples=None, provider=None, model=None, persona=No
     """req is a validated revise request. Returns {"draft", "history", "notes"}."""
     provider = provider_id(provider)
     model = model_id(provider, model)
-    samples = style_examples(_first_text(req["history"]), samples, persona, posts)
+    topic = _first_text(req["history"])
+    samples = style_examples(topic, samples, persona, posts)
     history = req["history"] + [{"role": "user", "content": req["feedback"]}]
-    draft, notes = _call(client or get_client(provider), provider, model, system_prompt(samples, persona), history)
+    from .prompt import system_prompt_with_rag
+    sys_prompt = system_prompt_with_rag(samples, persona, topic=topic)
+    draft, notes = _call(client or get_client(provider), provider, model, sys_prompt, history)
     history.append({"role": "assistant", "content": draft})
     return {"draft": draft, "history": history, "notes": notes + [_engine_note(provider, model)]}

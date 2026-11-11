@@ -20,3 +20,6 @@ __pycache__/
 .env
 *.tfstate*
 dist/linkedin-indo_*.deb
+*.tar.gz
+*.db
+*.sqlite3

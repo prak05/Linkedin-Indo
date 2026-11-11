@@ -47,11 +47,14 @@ resource "aws_apigatewayv2_integration" "fn" {
 
 locals {
   routes = {
-    "POST /drafts"        = { fn = "draft", auth = true }
-    "POST /drafts/revise" = { fn = "draft", auth = true }
-    "POST /posts"         = { fn = "posts", auth = true }
-    "GET /posts"          = { fn = "posts", auth = true }
-    "GET /health"         = { fn = "posts", auth = false }
+    "POST /drafts"               = { fn = "draft", auth = true }
+    "POST /drafts/revise"        = { fn = "draft", auth = true }
+    "POST /cover-letters"        = { fn = "draft", auth = true }
+    "POST /cover-letters/revise" = { fn = "draft", auth = true }
+    "POST /cover-letters/save"   = { fn = "posts", auth = true }
+    "POST /posts"                = { fn = "posts", auth = true }
+    "GET /posts"                 = { fn = "posts", auth = true }
+    "GET /health"                = { fn = "posts", auth = false }
   }
 }
 

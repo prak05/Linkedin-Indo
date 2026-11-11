@@ -131,6 +131,36 @@ def choose_engine():
     return {"engine": "llm", "provider": provider, "model": model}
 
 
+def cover_letter_session():
+    print("\nCover letter generator (local-first)")
+    track = choose("Target", {
+        "software_ai_cloud": "Software / AI / Cloud",
+        "management_hr": "Management / HR / Community",
+        "all_rounder": "All-rounder",
+    })
+    req = {
+        "track": track,
+        "job_title": ask("Job title"),
+        "company": ask("Company"),
+        "location": ask("Job location (optional)", required=False),
+        "job_description": ask("Paste the job description (optional)", required=False),
+    }
+    built = persona.load()
+    result = {"draft": indo_core.cover_letters.generate(req, built)}
+    while True:
+        show(result)
+        action = choose("Next", {"revise": "Request changes", "save": "Save cover letter", "quit": "Quit"})
+        if action == "revise":
+            result = indo_core.cover_letters.revise({**req, "draft": result["draft"],
+                                                      "feedback": ask("What should change")}, built)
+        elif action == "save":
+            saved = indo_core.cover_letters.save({**req, "draft": result["draft"]})
+            print(f"Saved to {saved['path']}")
+            return
+        else:
+            return
+
+
 def session(engine):
     req = {**collect(), **engine}
     print("\nWriting the draft...")
@@ -235,6 +265,10 @@ def main():
         if "--persona" in sys.argv or (persona.load() is None and choose(
                 "\nNo persona yet. Set it up now so drafts sound like you?", {"yes": "Yes (recommended)", "no": "Not now"}) == "yes"):
             setup_persona()
+        if choose("\nWhat do you want to create?", {
+                "post": "LinkedIn post/comment", "cover": "Cover letter"}) == "cover":
+            cover_letter_session()
+            return 0
         engine = choose_engine()
         while True:
             try:

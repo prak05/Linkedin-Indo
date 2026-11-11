@@ -134,6 +134,9 @@ class Handler(BaseHTTPRequestHandler):
             self._json(HTTPStatus.OK, indo_core.list_posts(self.posts_dir))
         elif path == "/settings":
             self._json(HTTPStatus.OK, settings.view())
+        elif path == "/rag/stats":
+            from indo_core.vector_db.query import stats as rag_stats
+            self._json(HTTPStatus.OK, rag_stats())
         elif path == "/net":
             self._json(HTTPStatus.OK, {"online": internet_ok()})
         else:
@@ -155,6 +158,9 @@ class Handler(BaseHTTPRequestHandler):
             "/inspirations": lambda body: persona.add_inspiration(body, self.persona_dir),
             "/inspirations/delete": self._delete_inspiration,
             "/posts": lambda body: indo_core.save_post(body, directory=self.posts_dir),
+            "/cover-letters": lambda body: self._cover_letter(body),
+            "/cover-letters/revise": lambda body: self._cover_letter_revise(body),
+            "/cover-letters/save": lambda body: indo_core.cover_letters.save(body),
             "/persona/scan": self._scan_profile,
             "/settings": settings.save,
             "/settings/test": lambda body: llm.test_connection((body or {}).get("provider"), (body or {}).get("model"),
@@ -162,6 +168,8 @@ class Handler(BaseHTTPRequestHandler):
             "/settings/import-claude-code": lambda body: settings.import_claude_code(),
             "/agent": lambda body: agent.step(body, client=self.client, persona_dir=self.persona_dir,
                                               posts_dir=self.posts_dir),
+            "/rag/search": self._rag_search,
+            "/rag/ingest": self._rag_ingest,
         }
         if path not in routes:
             self._json(HTTPStatus.NOT_FOUND, {"error": "Not found."})
@@ -179,6 +187,31 @@ class Handler(BaseHTTPRequestHandler):
             self._json(HTTPStatus.INTERNAL_SERVER_ERROR, {"error": "Something went wrong on the local backend."})
         else:
             self._json(HTTPStatus.CREATED if path == "/posts" else HTTPStatus.OK, result)
+
+    def _cover_letter(self, body):
+        built = persona.load(self.persona_dir)
+        req = indo_core.cover_letters.validate_request(body)
+        return {"draft": indo_core.cover_letters.generate(req, built),
+                "track": req["track"], "engine": "local"}
+
+    def _cover_letter_revise(self, body):
+        built = persona.load(self.persona_dir)
+        return {**indo_core.cover_letters.revise(body, built), "engine": "local"}
+
+    def _rag_search(self, body):
+        from indo_core.vector_db.query import search as rag_search
+        query = (body or {}).get("query", "").strip()
+        if not query:
+            raise indo_core.ValidationError("Query is required.")
+        n = min(int((body or {}).get("n_results", 8)), 25)
+        category = (body or {}).get("category") or None
+        results = rag_search(query, n_results=n, category_filter=category)
+        return {"query": query, "results": results}
+
+    def _rag_ingest(self, body):
+        from indo_core.vector_db.ingest import build_index
+        force = bool((body or {}).get("force", False))
+        return build_index(force=force)
 
     # ---------- Persona (stays on this machine) ----------
 
