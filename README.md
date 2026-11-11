@@ -95,23 +95,19 @@ flowchart LR
 
 ---
 
-## 📂 Curated Engineering Projects
+## 📂 Curated Engineering Projects & Roadmap
 
-A dedicated catalog of production systems, GovTech engines, and clinical platforms is documented under [`projects/`](projects/):
+A comprehensive, evidence-verified catalog of 32 production systems, GovTech engines, clinical AI platforms, and systems engineering laboratories is documented under [`projects/`](projects/):
 
-- **[KSERC AI Truing-Up Engine](projects/kserc-truing-up.md)**: Statutory GovTech utility tariff auditing engine automating 500+ page audited petition reviews for Kerala power utilities.
-- **[MediScribe 2.0](projects/mediscribe-clinical-ai.md)**: Ambient clinical intelligence converting consultation audio into zero-hallucination SOAP notes. Selected for **UST SIGHT 3.0 National Showcase**.
-- **[MedBuddy Clinical RAG](projects/medbuddy-clinical-rag.md)**: Dense + keyword literature QA engine. **1st Place Winner at Gravity IEDC-MCET Cluster Ideathon**.
-- **[Agri-Smart Pro](projects/agri-smart-irrigation.md)**: Precision irrigation optimization. **National Top 1.1% Finalist (Top 40 / 3,668)** in AICTE-Shell India Skills4Future.
-- **[Fasal Saarthi: Kushal Kisan](projects/fasal-saarthi-ai.md)**: 7-parameter soil/weather crop recommendation engine (95%+ accuracy) with IBM SkillsBuild / AICTE.
-- **[RetinaScan Diagnostic AI](projects/retinascan-ai.md)**: Multimodal Diabetic Retinopathy screening with Multi-CAM explainability maps.
-- **[OmniPrice ML Engine](projects/omniprice-ml-engine.md)**: Serverless price elasticity and revenue forecasting engine on AWS SageMaker.
-- **[Yugality LegalTech Mesh](projects/yugality-legaltech.md)**: AI contract compliance & legal intelligence. Backed by **IIT Patna IC** & **Startup Bihar**.
-- **[WhatsApp-MCP](projects/whatsapp-mcp.md)**: Production MCP server for real-time agent notifications and thread monitoring.
-- **[SGSSS Smart Grid](projects/sgsss-smart-grid.md)**: Solar microgrid monitoring, power quality analysis, and automated load balancing node.
-- **[PrakVerse Identity Mesh](projects/prakverse-identity-mesh.md)**: Local-first single-source-of-truth knowledge engine and career asset compiler.
+Active GitHub Project Board: **[Prakhar Sharma — Flagship Engineering & AI Systems Roadmap](https://github.com/users/prak05/projects/1)**
 
-See [`projects/README.md`](projects/README.md) for full architecture specifications.
+- **Clinical AI & Healthcare:** [MediScribe 2.0](projects/mediscribe-clinical-ai.md) (UST SIGHT 3.0 Showcase), [MedBuddy Clinical RAG](projects/medbuddy-clinical-rag.md) (1st Place IEDC Ideathon), [RetinaScan Diagnostic AI](projects/retinascan-ai.md), [CardioPredict AI](projects/cardiopredict-medical-ai.md), [Medical Dispensary System](projects/medical-dispensary-system.md).
+- **Cloud Infrastructure & OR:** [OmniPrice ML Engine](projects/omniprice-ml-engine.md) (AWS SageMaker Serverless), [OptiSchedule-RCPSP-AI](projects/optischedule-rcpsp.md), [SGSSS Smart Grid](projects/sgsss-smart-grid.md), [Financial Fraud Prediction Model](projects/financial-fraud-detection.md), [Used Car Value Forecasting](projects/used-car-value-forecasting.md).
+- **Agentic AI & Protocols:** [WhatsApp-MCP](projects/whatsapp-mcp.md), [AlignAI Guardrail Core](projects/alignai-guardrails.md), [VisagePass Biometrics](projects/visagepass-biometrics.md), [PrakVerse Identity Mesh](projects/prakverse-identity-mesh.md), [Online Privacy & Security](projects/online-privacy-security.md).
+- **GovTech & Enterprise:** [KSERC AI Truing-Up Engine](projects/kserc-truing-up.md) (Statutory Tariff Review), [Agri-Smart Pro](projects/agri-smart-irrigation.md) (Top 1.1% AICTE-Shell India Finalist), [Fasal Saarthi: Kushal Kisan](projects/fasal-saarthi-ai.md), [ReportHub Enterprise Analytics](projects/reporthub-enterprise.md), [Yugality LegalTech](projects/yugality-legaltech.md) (IIT Patna IC / Startup Bihar), [AtithiFusion Hospitality](projects/atithifusion-hospitality.md).
+- **Systems & CS Labs:** [LexiFlux Compiler Lab](projects/lexiflux-compiler-lab.md), [SysForge Systems Lab](projects/sysforge-systems-lab.md), [PacketPulse Networks Lab](projects/packetpulse-networks-lab.md), [QueryCore DBMS Lab](projects/querycore-dbms-lab.md), [The DSA Dungeon](projects/dsa-dungeon-guide.md), [The C Lab Lifesaver (OS Edition)](projects/c-lab-lifesaver-os.md), [Bank Management (JDBC)](projects/bank-management-jdbc.md), [Java Foundations](projects/java-foundations.md), [MASM x86 Assembly](projects/masm-microprocessors.md).
+
+See [`projects/README.md`](projects/README.md) for full architectural specifications, schemas, and live repository links.
 
 ---
 
