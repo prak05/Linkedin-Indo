@@ -55,12 +55,12 @@ fi
 if [ -x /usr/bin/python3.13 ]; then PY=/usr/bin/python3.13
 elif command -v python3.13 >/dev/null 2>&1; then PY=$(command -v python3.13)
 else echo "linkedin-indo: python3.13 not found" >&2; exit 1; fi
-# -s: ignore ~/.local site-packages so only the bundled dependencies are used.
-export PYTHONPATH=/usr/lib/linkedin-indo/vendor
+APP_DIR="$(cd "$(dirname "$0")" && pwd)"
+export PYTHONPATH="$APP_DIR/vendor:$APP_DIR/src:${PYTHONPATH:-}"
 export PYTHONDONTWRITEBYTECODE=1
 echo "Drafts: $INDO_POSTS_DIR   Style samples: $INDO_SAMPLES_DIR" >&2
 script="$1"; shift
-exec "$PY" -s "/usr/lib/linkedin-indo/$script" "$@"
+exec "$PY" -s "$APP_DIR/$script" "$@"
 EOF
 chmod 755 "$APP/launch"
 
