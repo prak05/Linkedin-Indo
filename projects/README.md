@@ -2,7 +2,19 @@
 
 A curated, evidence-verified catalog of engineering systems, GovTech solutions, clinical AI platforms, cloud infrastructure, and low-level systems laboratories engineered by **[Prakhar Sharma](https://github.com/prak05)**. Every project below is integrated into LinkedIn Indo's **Perplexity Vector Knowledge Base** (`knowledge.db`) for zero-hallucination RAG drafting and technical citations.
 
-Active GitHub Project Board: **[Prakhar Sharma — Flagship Engineering & AI Systems Roadmap](https://github.com/users/prak05/projects/1)**
+### 🌐 Public GitHub Project Boards ([github.com/prak05?tab=projects](https://github.com/prak05?tab=projects))
+
+- **Major Clusters:**
+  - [Web Development & Full-Stack Applications](https://github.com/users/prak05/projects/3)
+  - [Core Systems & Computer Science Laboratories](https://github.com/users/prak05/projects/4)
+  - [Predictive Machine Learning & Statistical Modeling Suite](https://github.com/users/prak05/projects/5)
+- **Flagship Standalone Systems:**
+  - [MediScribe AI Platform](https://github.com/users/prak05/projects/6) • [KSERC GovTech Truing-Up Engine](https://github.com/users/prak05/projects/7) • [OmniPrice ML Engine](https://github.com/users/prak05/projects/8)
+  - [WhatsApp-MCP](https://github.com/users/prak05/projects/9) • [OptiSchedule-RCPSP-AI](https://github.com/users/prak05/projects/10) • [SGSSS Smart Grid](https://github.com/users/prak05/projects/11)
+  - [RetinaScan Diagnostic AI](https://github.com/users/prak05/projects/12) • [MedBuddy Clinical RAG](https://github.com/users/prak05/projects/13) • [Agri-Smart Pro](https://github.com/users/prak05/projects/14)
+  - [Fasal Saarthi: Kushal Kisan](https://github.com/users/prak05/projects/15) • [AlignAI Guardrail Core](https://github.com/users/prak05/projects/16) • [ReportHub Analytics](https://github.com/users/prak05/projects/17)
+  - [Linkedin-Indo](https://github.com/users/prak05/projects/18) • [PrakVerse](https://github.com/users/prak05/projects/19) • [Yugality LegalTech](https://github.com/users/prak05/projects/20)
+  - [VisagePass Biometrics](https://github.com/users/prak05/projects/21) • [Medical Dispensary System](https://github.com/users/prak05/projects/22)
 
 ---
 
